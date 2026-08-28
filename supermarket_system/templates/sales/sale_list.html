@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Receipts{% endblock %}
+{% block topbar %}
+  {% if user.is_admin %}<a href="{% url 'report_export' 'sales' %}?from={{ date_from }}&to={{ date_to }}" class="btn">Export to Excel (CSV)</a>{% endif %}
+  <a href="{% url 'pos' %}" class="btn btn-primary">New sale</a>
+{% endblock %}
+{% block content %}
+
+<form method="get" class="toolbar">
+  <div class="field">
+    <label for="q">Receipt or customer</label>
+    <input type="text" name="q" id="q" class="input" value="{{ q }}" placeholder="e.g. R2608280001">
+  </div>
+  <div class="field">
+    <label for="from">From</label>
+    <input type="date" name="from" id="from" class="input" value="{{ date_from }}">
+  </div>
+  <div class="field">
+    <label for="to">To</label>
+    <input type="date" name="to" id="to" class="input" value="{{ date_to }}">
+  </div>
+  <button type="submit" class="btn">Filter</button>
+  {% if q or date_from or date_to %}<a href="?" class="btn">Clear</a>{% endif %}
+  <div class="spacer"></div>
+  <div class="field">
+    <div class="faint">{{ count }} receipt{{ count|pluralize }}</div>
+    <strong style="font-size:1.15rem">{{ currency }} {{ grand_total|floatformat:0|intcomma }}</strong>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-body tight">
+    {% if page.object_list %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Receipt</th><th>Date &amp; time</th><th>Served by</th><th>Customer</th>
+              <th class="num">Items</th><th class="num">Total</th><th>Paid by</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+        {% for s in page.object_list %}
+          <tr {% if s.status == "VOIDED" %}class="row-danger"{% endif %}>
+            <td><a href="{% url 'sale_detail' s.pk %}" class="mono">{{ s.receipt_no }}</a></td>
+            <td>{{ s.created_at|date:"d M Y, H:i" }}</td>
+            <td>{{ s.served_by.display_name }}</td>
+            <td class="muted">{{ s.customer_name }}</td>
+            <td class="num">{{ s.item_count }}</td>
+            <td class="num"><strong>{{ s.total|floatformat:0|intcomma }}</strong></td>
+            <td class="muted">{{ s.get_payment_method_display }}</td>
+            <td>{% if s.status == "VOIDED" %}<span class="badge badge-danger">Voided</span>{% else %}<span class="badge badge-ok">Completed</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "partials/pager.html" %}
+    {% else %}
+      <div class="empty"><strong>No receipts found</strong>Nothing matches this filter.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block heading %}Backup{% endblock %}
+{% block content %}
+<div class="msg msg-warning">
+  This system keeps everything in one file on this computer. If the machine is stolen
+  or the disk fails, the shop's records go with it. Make a backup at the end of every
+  trading day and copy it onto a flash disk kept somewhere else.
+</div>
+
+<div class="card" style="max-width:820px">
+  <div class="card-head">
+    <h2>Make a backup now</h2>
+    <div class="spacer"></div>
+    <form method="post">{% csrf_token %}
+      <button type="submit" class="btn btn-primary">Back up now</button>
+    </form>
+  </div>
+  <div class="card-body tight">
+    {% if backups %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>File</th><th>Made on</th><th class="num">Size</th><th></th></tr></thead>
+        <tbody>
+        {% for b in backups %}
+          <tr>
+            <td class="mono">{{ b.name }}</td>
+            <td>{{ b.when|date:"D d M Y, H:i" }}</td>
+            <td class="num">{{ b.size_kb }} KB</td>
+            <td class="num"><a class="btn btn-sm" href="{% url 'backup_download' b.name %}">Download</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty"><strong>No backups yet</strong>Press "Back up now" to make the first one.</div>
+    {% endif %}
+  </div>
+</div>
+
+<p class="faint">Backups are written to <span class="mono">{{ folder }}</span></p>
+{% endblock %}

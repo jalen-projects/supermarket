@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block heading %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:760px">
+  <div class="card-head"><h2>{{ title }}</h2></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% include "partials/form_fields.html" %}
+      </div>
+      <div class="msg msg-warning" style="margin-top:.5rem">
+        Adding a product does not give it stock. Record a delivery under
+        <strong>Purchases</strong> to put it on the shelf, or use
+        <strong>Adjust stock</strong> for goods the shop already has.
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary">Save product</button>
+        {% if not object %}
+          <button type="submit" name="save_and_add" value="1" class="btn">Save and add another</button>
+        {% endif %}
+        <a href="{% url 'product_list' %}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

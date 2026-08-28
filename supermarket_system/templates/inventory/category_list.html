@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block heading %}Categories{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><h2>Categories in use</h2></div>
+    <div class="card-body tight">
+      {% if categories %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Description</th><th class="num">Products</th><th></th></tr></thead>
+          <tbody>
+          {% for c in categories %}
+            <tr>
+              <td><strong>{{ c.name }}</strong></td>
+              <td class="muted">{{ c.description|default:"-" }}</td>
+              <td class="num">{{ c.n }}</td>
+              <td class="num"><a href="{% url 'category_edit' c.pk %}" class="btn btn-sm">Edit</a></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="empty"><strong>No categories yet</strong>Add one on the right - for example Beverages, Soap, Cereals.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Add a category</h2></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit" class="btn btn-primary">Add category</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block heading %}Suppliers{% endblock %}
+{% block topbar %}<a href="{% url 'supplier_create' %}" class="btn btn-primary">Add a supplier</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2>Who the shop buys from</h2>
+    <div class="spacer"></div>
+    <span class="faint">Every delivery is recorded against a supplier.</span>
+  </div>
+  <div class="card-body tight">
+    {% if suppliers %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Supplier</th><th>Contact</th><th>Phone</th><th>Address</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for s in suppliers %}
+          <tr>
+            <td><strong>{{ s.name }}</strong></td>
+            <td class="muted">{{ s.contact_person|default:"-" }}</td>
+            <td class="muted">{{ s.phone|default:"-" }}</td>
+            <td class="muted">{{ s.address|default:"-" }}</td>
+            <td>{% if s.is_active %}<span class="badge badge-ok">Active</span>{% else %}<span class="badge">Not used</span>{% endif %}</td>
+            <td class="num"><a href="{% url 'supplier_edit' s.pk %}" class="btn btn-sm">Edit</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty"><strong>No suppliers yet</strong>Add the first one before recording a delivery.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

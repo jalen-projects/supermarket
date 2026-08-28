@@ -1,0 +1,9 @@
+venv/
+db.sqlite3
+db.sqlite3-journal
+.secret_key
+staticfiles/
+media/
+backups/
+__pycache__/
+*.pyc

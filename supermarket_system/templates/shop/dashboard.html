@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Dashboard{% endblock %}
+{% block topbar %}<a href="{% url 'pos' %}" class="btn btn-primary">Open the till</a>{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-4" style="margin-bottom:1.25rem">
+  <div class="stat good">
+    <div class="label">Today's takings</div>
+    <div class="value">{{ currency }} {{ todays_total|floatformat:0|intcomma }}</div>
+    <div class="note">{{ todays_count }} receipt{{ todays_count|pluralize }} today</div>
+  </div>
+  <div class="stat">
+    <div class="label">Served by you</div>
+    <div class="value">{{ currency }} {{ my_total|floatformat:0|intcomma }}</div>
+    <div class="note">{{ my_count }} sale{{ my_count|pluralize }} on your name</div>
+  </div>
+  {% if user.is_admin %}
+  <div class="stat {% if low_stock_count %}caution{% endif %}">
+    <div class="label">Low stock</div>
+    <div class="value">{{ low_stock_count }}</div>
+    <div class="note">{% if low_stock_count %}<a href="{% url 'product_list' %}?view=low">See what to reorder</a>{% else %}Every shelf is above its reorder level{% endif %}</div>
+  </div>
+  <div class="stat {% if expired_count %}alert{% endif %}">
+    <div class="label">Expired on the shelf</div>
+    <div class="value">{{ expired_count }}</div>
+    <div class="note">{% if expiring_count %}{{ expiring_count }} more expiring soon &middot; {% endif %}<a href="{% url 'expiry_list' %}">Expiry watch</a></div>
+  </div>
+  {% endif %}
+</div>
+
+{% if user.is_admin %}
+<div class="grid grid-4" style="margin-bottom:1.25rem">
+  <div class="stat">
+    <div class="label">Products</div>
+    <div class="value">{{ product_count }}</div>
+    <div class="note"><a href="{% url 'product_list' %}">Manage products</a></div>
+  </div>
+  <div class="stat">
+    <div class="label">Stock at cost</div>
+    <div class="value">{{ currency }} {{ stock_worth|floatformat:0|intcomma }}</div>
+    <div class="note">Money currently sitting on the shelves</div>
+  </div>
+  <div class="stat">
+    <div class="label">Last 7 days</div>
+    <div class="value">{{ currency }} {{ week_total|floatformat:0|intcomma }}</div>
+    <div class="note">{{ week_count }} sale{{ week_count|pluralize }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Units in stock</div>
+    <div class="value">{{ stock_units|floatformat:"-2"|intcomma }}</div>
+    <div class="note"><a href="{% url 'stock_list' %}">Stock available</a></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head">
+      <h2>Today's sales</h2>
+      <div class="spacer"></div>
+      <a href="{% url 'day_summary' %}" class="btn btn-sm">Full day summary</a>
+    </div>
+    <div class="card-body tight">
+      {% if recent_sales %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Receipt</th><th>Time</th><th>Served by</th><th>Customer</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            {% for s in recent_sales %}
+            <tr>
+              <td><a href="{% url 'sale_detail' s.pk %}" class="mono">{{ s.receipt_no }}</a></td>
+              <td class="muted">{{ s.created_at|date:"H:i" }}</td>
+              <td>{{ s.served_by.display_name }}</td>
+              <td class="muted">{{ s.customer_name }}</td>
+              <td class="num">{{ s.total|floatformat:0|intcomma }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="empty"><strong>No sales yet today</strong>Open the till to record the first one.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if user.is_admin %}
+  <div class="card">
+    <div class="card-head">
+      <h2>Needs your attention</h2>
+    </div>
+    <div class="card-body tight">
+      {% if expired %}
+        <div style="padding:.85rem 1.15rem;border-bottom:1px solid var(--line-soft)">
+          <span class="badge badge-danger">Expired</span>
+          <span class="faint"> - do not sell these. Write them off.</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            {% for b in expired %}
+              <tr class="row-danger">
+                <td>{{ b.product.name }}</td>
+                <td class="num">{{ b.quantity_remaining|floatformat:"-2" }} {{ b.product.unit }}</td>
+                <td class="num muted">expired {{ b.expiry_date|date:"d M Y" }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if expiring %}
+        <div style="padding:.85rem 1.15rem;border-bottom:1px solid var(--line-soft);border-top:1px solid var(--line-soft)">
+          <span class="badge badge-warn">Expiring soon</span>
+          <span class="faint"> - sell or discount these first.</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            {% for b in expiring %}
+              <tr class="row-warn">
+                <td>{{ b.product.name }}</td>
+                <td class="num">{{ b.quantity_remaining|floatformat:"-2" }} {{ b.product.unit }}</td>
+                <td class="num muted">{{ b.days_to_expiry }} day{{ b.days_to_expiry|pluralize }} left</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if low_stock %}
+        <div style="padding:.85rem 1.15rem;border-bottom:1px solid var(--line-soft);border-top:1px solid var(--line-soft)">
+          <span class="badge badge-warn">Low stock</span>
+          <span class="faint"> - order more from your supplier.</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            {% for p in low_stock %}
+              <tr>
+                <td><a href="{% url 'product_detail' p.pk %}">{{ p.name }}</a></td>
+                <td class="num">{{ p.stock|floatformat:"-2" }} {{ p.unit }} left</td>
+                <td class="num muted">reorder at {{ p.effective_reorder_level|floatformat:"-2" }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if not expired and not expiring and not low_stock %}
+        <div class="empty"><strong>Nothing needs attention</strong>No expired goods, and every shelf is stocked.</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if user.is_admin and top_sellers %}
+<div class="card">
+  <div class="card-head"><h2>Who sold what - last 7 days</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Seller</th><th class="num">Receipts</th><th class="num">Value</th></tr></thead>
+        <tbody>
+          {% for s in top_sellers %}
+          <tr>
+            <td>{{ s.served_by__first_name|default:s.served_by__username }}</td>
+            <td class="num">{{ s.n }}</td>
+            <td class="num">{{ currency }} {{ s.total|floatformat:0|intcomma }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

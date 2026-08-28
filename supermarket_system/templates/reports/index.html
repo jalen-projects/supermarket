@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block heading %}Reports{% endblock %}
+{% block content %}
+<div class="grid grid-3">
+  <div class="card">
+    <div class="card-body">
+      <h3>Sales &amp; sellers</h3>
+      <p class="muted">What was taken each day, by which cashier, and how it was paid.</p>
+      <a href="{% url 'report_sales' %}" class="btn btn-primary btn-sm">Open</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h3>Profit</h3>
+      <p class="muted">Selling price less buying price, per product. Shows what actually earns.</p>
+      <a href="{% url 'report_profit' %}" class="btn btn-primary btn-sm">Open</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h3>Stock available</h3>
+      <p class="muted">Everything on the shelves, valued at cost and at selling price.</p>
+      <a href="{% url 'report_stock' %}" class="btn btn-primary btn-sm">Open</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h3>Expired &amp; expiring</h3>
+      <p class="muted">What has gone bad and what is about to, with the money at stake.</p>
+      <a href="{% url 'report_expiry' %}" class="btn btn-primary btn-sm">Open</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h3>Best &amp; slow movers</h3>
+      <p class="muted">What sells fastest, and what has sat on the shelf without moving.</p>
+      <a href="{% url 'report_top_products' %}" class="btn btn-primary btn-sm">Open</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h3>Spreadsheets</h3>
+      <p class="muted">Take any of it into Excel.</p>
+      <div class="btn-row">
+        <a href="{% url 'report_export' 'stock' %}" class="btn btn-sm">Stock</a>
+        <a href="{% url 'report_export' 'sales' %}" class="btn btn-sm">Sales</a>
+        <a href="{% url 'report_export' 'expiry' %}" class="btn btn-sm">Expiry</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

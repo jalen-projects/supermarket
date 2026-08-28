@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block heading %}Measurements{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head">
+      <h2>How goods are measured</h2>
+      <div class="spacer"></div>
+      <span class="faint">Piece, kilogram, litre, crate...</span>
+    </div>
+    <div class="card-body tight">
+      {% if units %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Short</th><th>Sold in fractions?</th></tr></thead>
+          <tbody>
+          {% for u in units %}
+            <tr>
+              <td><strong>{{ u.name }}</strong></td>
+              <td class="mono">{{ u.abbreviation }}</td>
+              <td>{% if u.allow_decimals %}<span class="badge badge-ok">Yes - e.g. 1.5</span>{% else %}<span class="badge">Whole numbers only</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="empty"><strong>No measurements yet</strong>Add "Piece" first - most items use it.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Add a measurement</h2></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit" class="btn btn-primary">Add measurement</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

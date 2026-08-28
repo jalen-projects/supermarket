@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block heading %}Shop details{% endblock %}
+{% block content %}
+<div class="card" style="max-width:820px">
+  <div class="card-head">
+    <h2>Shop details</h2>
+    <div class="spacer"></div>
+    <span class="faint">These appear on every printed receipt.</span>
+  </div>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% include "partials/form_fields.html" %}
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary">Save shop details</button>
+        <a href="{% url 'dashboard' %}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

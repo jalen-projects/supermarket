@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# This shop's own data - never belongs in the repository.
+db.sqlite3
+db.sqlite3-journal
+.secret_key
+backups/
+media/
+staticfiles/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

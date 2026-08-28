@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}{{ customer.name }}{% endblock %}
+{% block topbar %}<a href="{% url 'customer_edit' customer.pk %}" class="btn">Edit</a>{% endblock %}
+{% block content %}
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat">
+    <div class="label">Total bought</div>
+    <div class="value">{{ currency }} {{ total|floatformat:0|intcomma }}</div>
+    <div class="note">Across all completed receipts</div>
+  </div>
+  <div class="stat {% if owing %}alert{% endif %}">
+    <div class="label">Still owing</div>
+    <div class="value">{{ currency }} {{ owing|floatformat:0|intcomma }}</div>
+    <div class="note">From sales marked as credit</div>
+  </div>
+  <div class="stat">
+    <div class="label">Contact</div>
+    <div class="value" style="font-size:1.05rem">{{ customer.phone|default:"No phone" }}</div>
+    <div class="note">{{ customer.address|default:"No address recorded" }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Their receipts</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Receipt</th><th>Date</th><th>Served by</th><th class="num">Total</th><th class="num">Balance</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for s in sales %}
+          <tr {% if s.status == "VOIDED" %}class="row-danger"{% endif %}>
+            <td><a href="{% url 'sale_detail' s.pk %}" class="mono">{{ s.receipt_no }}</a></td>
+            <td>{{ s.created_at|date:"d M Y, H:i" }}</td>
+            <td class="muted">{{ s.served_by.display_name }}</td>
+            <td class="num">{{ s.total|floatformat:0|intcomma }}</td>
+            <td class="num">{% if s.balance_due %}<strong style="color:var(--danger)">{{ s.balance_due|floatformat:0|intcomma }}</strong>{% else %}-{% endif %}</td>
+            <td>{% if s.status == "VOIDED" %}<span class="badge badge-danger">Voided</span>{% else %}<span class="badge badge-ok">Completed</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6"><div class="empty"><strong>No purchases yet</strong></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if customer.notes %}
+<div class="card"><div class="card-body"><strong>Notes:</strong> {{ customer.notes }}</div></div>
+{% endif %}
+{% endblock %}

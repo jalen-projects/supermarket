@@ -1,0 +1,50 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in - {{ shop.company_name }}</title>
+  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    {% if shop.logo %}
+      <img src="{{ shop.logo.url }}" alt="" style="max-height:56px;margin-bottom:1rem">
+    {% else %}
+      <div class="brand-mark">{{ shop.company_name|slice:":2"|upper }}</div>
+    {% endif %}
+
+    <h1 style="margin-bottom:.15rem">{{ shop.company_name }}</h1>
+    <p class="muted" style="margin-top:0;font-size:.88rem">
+      Sign in to open the till.
+    </p>
+
+    {% if form.errors %}
+      <div class="msg msg-error">
+        That username and password do not match. Check the caps lock key and try again.
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_username">Username</label>
+        <input type="text" name="username" id="id_username" class="input" autofocus required>
+      </div>
+      <div class="field">
+        <label for="id_password">Password</label>
+        <input type="password" name="password" id="id_password" class="input" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg btn-block">Sign in</button>
+      <input type="hidden" name="next" value="{{ next }}">
+    </form>
+
+    <p class="faint" style="margin-top:1.2rem;margin-bottom:0">
+      This system runs on this computer only. Your sales are not sent anywhere.
+    </p>
+  </div>
+</div>
+</body>
+</html>

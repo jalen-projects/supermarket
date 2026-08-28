@@ -1,0 +1,99 @@
+{% load static humanize %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ shop.company_name }}{% endblock %}</title>
+  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar no-print">
+    <div class="brand">
+      {% if shop.logo %}<img src="{{ shop.logo.url }}" alt="">
+      {% else %}<div class="brand-mark">{{ shop.company_name|slice:":2"|upper }}</div>{% endif %}
+      <div>
+        <div class="brand-name">{{ shop.company_name }}</div>
+        <div class="brand-sub">Management system</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Selling</div>
+      <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">New sale (till)</a>
+      <a href="{% url 'sale_list' %}" class="{% if request.resolver_match.url_name == 'sale_list' %}active{% endif %}">Receipts</a>
+      <a href="{% url 'day_summary' %}" class="{% if request.resolver_match.url_name == 'day_summary' %}active{% endif %}">Today's takings</a>
+      <a href="{% url 'customer_list' %}" class="{% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">Customers</a>
+
+      {% if user.is_admin %}
+      <div class="nav-label">Stock</div>
+      <a href="{% url 'product_list' %}" class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">Products</a>
+      <a href="{% url 'stock_list' %}" class="{% if request.resolver_match.url_name == 'stock_list' %}active{% endif %}">Stock available</a>
+      <a href="{% url 'purchase_list' %}" class="{% if request.resolver_match.url_name == 'purchase_list' %}active{% endif %}">Purchases</a>
+      <a href="{% url 'expiry_list' %}" class="{% if request.resolver_match.url_name == 'expiry_list' %}active{% endif %}">Expiry watch</a>
+      <a href="{% url 'supplier_list' %}" class="{% if request.resolver_match.url_name == 'supplier_list' %}active{% endif %}">Suppliers</a>
+      <a href="{% url 'category_list' %}" class="{% if request.resolver_match.url_name == 'category_list' %}active{% endif %}">Categories</a>
+      <a href="{% url 'unit_list' %}" class="{% if request.resolver_match.url_name == 'unit_list' %}active{% endif %}">Measurements</a>
+      <a href="{% url 'movement_list' %}" class="{% if request.resolver_match.url_name == 'movement_list' %}active{% endif %}">Stock movements</a>
+
+      <div class="nav-label">Reports</div>
+      <a href="{% url 'reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">All reports</a>
+      <a href="{% url 'report_sales' %}">Sales &amp; sellers</a>
+      <a href="{% url 'report_profit' %}">Profit</a>
+      <a href="{% url 'report_top_products' %}">Best &amp; slow movers</a>
+
+      <div class="nav-label">Setup</div>
+      <a href="{% url 'shop_settings' %}" class="{% if request.resolver_match.url_name == 'shop_settings' %}active{% endif %}">Shop details</a>
+      <a href="{% url 'user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">Users</a>
+      <a href="{% url 'backup' %}" class="{% if request.resolver_match.url_name == 'backup' %}active{% endif %}">Backup</a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="who">{{ user.display_name }}</div>
+      <div class="role">{{ user.get_role_display }}</div>
+      <a href="{% url 'logout' %}" onclick="event.preventDefault();document.getElementById('logout-form').submit();">Sign out</a>
+      <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:none">{% csrf_token %}</form>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar no-print">
+      <h1>{% block heading %}{% endblock %}</h1>
+      <div class="spacer"></div>
+      {% block topbar %}{% endblock %}
+      <div class="clock" id="clock"></div>
+    </header>
+
+    <div class="content">
+      {% if messages %}
+        <div class="no-print">
+          {% for m in messages %}<div class="msg msg-{{ m.tags }}">{{ m }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<script>
+  // The date the client asked for, shown live so the cashier can see the till
+  // is on the right day before printing anything.
+  (function () {
+    var el = document.getElementById('clock');
+    if (!el) return;
+    function tick() {
+      var d = new Date();
+      el.textContent = d.toLocaleDateString(undefined, {
+        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+      }) + '  ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+    tick();
+    setInterval(tick, 20000);
+  })();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

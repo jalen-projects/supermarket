@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Takings{% endblock %}
+{% block topbar %}<button onclick="window.print()" class="btn btn-primary no-print">Print handover sheet</button>{% endblock %}
+{% block content %}
+
+<form method="get" class="toolbar no-print">
+  <div class="field">
+    <label for="date">Day</label>
+    <input type="date" name="date" id="date" class="input" value="{{ day }}" onchange="this.form.submit()">
+  </div>
+</form>
+
+<div class="print-only" style="margin-bottom:1rem">
+  <h2>{{ shop.company_name }} - takings for {{ day }}</h2>
+  <div>Printed {% now "d M Y, H:i" %} by {{ user.display_name }}</div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat good">
+    <div class="label">Total taken</div>
+    <div class="value">{{ currency }} {{ total|floatformat:0|intcomma }}</div>
+    <div class="note">{{ day }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Receipts</div>
+    <div class="value">{{ count }}</div>
+    <div class="note">{% if not user.is_admin %}Your sales only{% else %}All cashiers{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Counted by</div>
+    <div class="value" style="font-size:1.05rem">{{ user.display_name }}</div>
+    <div class="note">Sign below when handing over</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>How it was paid</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Payment method</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+        {% for m in by_method %}
+          <tr>
+            <td>{{ m.label }}</td>
+            <td class="num">{{ currency }} {{ m.total|floatformat:0|intcomma }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="2" class="muted">Nothing taken on this day.</td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot><tr><td>Total</td><td class="num">{{ currency }} {{ total|floatformat:0|intcomma }}</td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Every receipt on {{ day }}</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Receipt</th><th>Time</th><th>Served by</th><th>Customer</th><th class="num">Total</th></tr></thead>
+        <tbody>
+        {% for s in sales %}
+          <tr>
+            <td class="mono">{{ s.receipt_no }}</td>
+            <td>{{ s.created_at|date:"H:i" }}</td>
+            <td>{{ s.served_by.display_name }}</td>
+            <td class="muted">{{ s.customer_name }}</td>
+            <td class="num">{{ s.total|floatformat:0|intcomma }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5"><div class="empty"><strong>No sales on this day</strong></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="print-only" style="margin-top:2rem">
+  <p>Cash handed over: ______________________ &nbsp;&nbsp; Signature: ______________________</p>
+  <p>Received by: ______________________ &nbsp;&nbsp; Date: ______________________</p>
+</div>
+{% endblock %}

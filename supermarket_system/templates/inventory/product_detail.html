@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}{{ product.name }}{% endblock %}
+{% block topbar %}
+  <a href="{% url 'product_adjust' product.pk %}" class="btn">Adjust stock</a>
+  <a href="{% url 'product_edit' product.pk %}" class="btn btn-primary">Edit</a>
+{% endblock %}
+{% block content %}
+
+<div class="grid grid-4" style="margin-bottom:1.25rem">
+  <div class="stat {% if product.stock_available <= 0 %}alert{% elif product.is_low_stock %}caution{% endif %}">
+    <div class="label">Stock available</div>
+    <div class="value">{{ product.stock_available|floatformat:"-2" }} <small>{{ product.unit }}</small></div>
+    <div class="note">Reorder at {{ product.effective_reorder_level|floatformat:"-2" }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Buying price</div>
+    <div class="value">{{ currency }} {{ product.buying_price|floatformat:0|intcomma }}</div>
+    <div class="note">Latest cost from a delivery</div>
+  </div>
+  <div class="stat good">
+    <div class="label">Selling price</div>
+    <div class="value">{{ currency }} {{ product.selling_price|floatformat:0|intcomma }}</div>
+    <div class="note">Profit {{ currency }} {{ product.profit_per_unit|floatformat:0|intcomma }} ({{ product.margin_percent|floatformat:1 }}%)</div>
+  </div>
+  <div class="stat {% if product.expired_quantity %}alert{% endif %}">
+    <div class="label">Expired on shelf</div>
+    <div class="value">{{ product.expired_quantity|floatformat:"-2" }}</div>
+    <div class="note">Nearest expiry {{ product.nearest_expiry|date:"d M Y"|default:"none set" }}</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><h2>Details</h2></div>
+    <div class="card-body tight">
+      <table>
+        <tr><td class="muted">Barcode</td><td class="mono">{{ product.barcode|default:"none" }}</td></tr>
+        <tr><td class="muted">Category</td><td>{{ product.category.name }}</td></tr>
+        <tr><td class="muted">Measurement</td><td>{{ product.unit.name }} ({{ product.unit.abbreviation }})</td></tr>
+        <tr><td class="muted">On sale</td><td>{% if product.is_active %}Yes{% else %}No{% endif %}</td></tr>
+        <tr><td class="muted">Added</td><td>{{ product.created_at|date:"d M Y" }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Batches on the shelf</h2>
+      <div class="spacer"></div>
+      <span class="faint">Sold first-expiry-first</span>
+    </div>
+    <div class="card-body tight">
+      {% if batches %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Received</th><th class="num">Left</th><th>Expires</th><th class="num">Cost</th><th></th></tr></thead>
+          <tbody>
+          {% for b in batches %}
+            <tr {% if b.is_expired %}class="row-danger"{% elif b.is_expiring_soon %}class="row-warn"{% endif %}>
+              <td>{{ b.received_on|date:"d M Y" }}</td>
+              <td class="num">{{ b.quantity_remaining|floatformat:"-2" }}</td>
+              <td>
+                {% if b.expiry_date %}{{ b.expiry_date|date:"d M Y" }}
+                  {% if b.is_expired %}<span class="badge badge-danger">expired</span>
+                  {% elif b.is_expiring_soon %}<span class="badge badge-warn">{{ b.days_to_expiry }}d</span>{% endif %}
+                {% else %}<span class="faint">no expiry</span>{% endif %}
+              </td>
+              <td class="num muted">{{ b.buying_price|floatformat:0|intcomma }}</td>
+              <td class="num">
+                <form method="post" action="{% url 'batch_write_off' b.pk %}"
+                      onsubmit="return confirm('Write this batch off? It leaves stock for good.')">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.path }}">
+                  <input type="hidden" name="reason" value="{% if b.is_expired %}Expired{% else %}Damaged or lost{% endif %}">
+                  <button type="submit" class="btn btn-sm">Write off</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="empty"><strong>No stock</strong>Receive a delivery, or adjust the stock manually.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Stock history</h2></div>
+  <div class="card-body tight">
+    {% if movements %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>When</th><th>What happened</th><th class="num">Quantity</th><th>Reference</th><th>By</th><th>Reason</th></tr></thead>
+        <tbody>
+        {% for m in movements %}
+          <tr>
+            <td class="muted">{{ m.created_at|date:"d M Y H:i" }}</td>
+            <td>{{ m.get_kind_display }}</td>
+            <td class="num">{{ m.quantity|floatformat:"-2" }}</td>
+            <td class="mono muted">{{ m.reference|default:"-" }}</td>
+            <td class="muted">{{ m.user.display_name|default:"-" }}</td>
+            <td class="faint">{{ m.reason }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<div class="empty">No movements recorded yet.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

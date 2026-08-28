@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Stock report{% endblock %}
+{% block topbar %}
+  <a href="{% url 'report_export' 'stock' %}" class="btn">Export to Excel (CSV)</a>
+  <button onclick="window.print()" class="btn no-print">Print</button>
+{% endblock %}
+{% block content %}
+
+<div class="print-only"><h2>{{ shop.company_name }} - stock as at {% now "d M Y, H:i" %}</h2></div>
+
+<div class="grid grid-4" style="margin-bottom:1.25rem">
+  <div class="stat">
+    <div class="label">Stock at cost</div>
+    <div class="value">{{ currency }} {{ cost_total|floatformat:0|intcomma }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Stock at selling price</div>
+    <div class="value">{{ currency }} {{ retail_total|floatformat:0|intcomma }}</div>
+  </div>
+  <div class="stat {% if low_count %}caution{% endif %}">
+    <div class="label">Low stock</div>
+    <div class="value">{{ low_count }}</div>
+    <div class="note">Items to reorder</div>
+  </div>
+  <div class="stat {% if out_count %}alert{% endif %}">
+    <div class="label">Out of stock</div>
+    <div class="value">{{ out_count }}</div>
+    <div class="note">Nothing left on the shelf</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Every product</h2>
+    <div class="spacer"></div>
+    <span class="faint">Out of stock first, then low stock.</span>
+  </div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th>Category</th><th class="num">Available</th><th class="num">Reorder at</th>
+              <th class="num">Buying</th><th class="num">Selling</th>
+              <th class="num">Value at cost</th><th class="num">Value at selling</th></tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr {% if r.out %}class="row-danger"{% elif r.low %}class="row-warn"{% endif %}>
+            <td><a href="{% url 'product_detail' r.product.pk %}">{{ r.product.name }}</a>
+              {% if r.out %}<span class="badge badge-danger">out</span>
+              {% elif r.low %}<span class="badge badge-warn">low</span>{% endif %}</td>
+            <td class="muted">{{ r.product.category.name }}</td>
+            <td class="num"><strong>{{ r.stock|floatformat:"-2" }}</strong> <span class="faint">{{ r.product.unit }}</span></td>
+            <td class="num muted">{{ r.product.effective_reorder_level|floatformat:"-2" }}</td>
+            <td class="num muted">{{ r.product.buying_price|floatformat:0|intcomma }}</td>
+            <td class="num">{{ r.product.selling_price|floatformat:0|intcomma }}</td>
+            <td class="num">{{ r.cost|floatformat:0|intcomma }}</td>
+            <td class="num">{{ r.retail|floatformat:0|intcomma }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8"><div class="empty"><strong>No products yet</strong></div></td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="6">Totals</td>
+            <td class="num">{{ currency }} {{ cost_total|floatformat:0|intcomma }}</td>
+            <td class="num">{{ currency }} {{ retail_total|floatformat:0|intcomma }}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

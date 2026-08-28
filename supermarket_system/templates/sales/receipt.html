@@ -1,0 +1,136 @@
+{% load humanize %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receipt {{ sale.receipt_no }}</title>
+<style>
+/* One template serves a thermal roll and an ordinary A4 printer. The shop
+   picks its paper in Shop details; ?width=A4 overrides it for one print. */
+:root { --w: {% if width == "58mm" %}54mm{% elif width == "A4" %}190mm{% else %}76mm{% endif %}; }
+* { box-sizing: border-box; }
+body {
+  font-family: {% if width == "A4" %}"Segoe UI", Arial, sans-serif{% else %}"Consolas", "Courier New", monospace{% endif %};
+  font-size: {% if width == "58mm" %}10.5px{% elif width == "A4" %}13px{% else %}11.5px{% endif %};
+  margin: 0; padding: 8px; background: #f2f3f5; color: #000; line-height: 1.35;
+}
+.slip { width: var(--w); margin: 0 auto; background: #fff; padding: 10px; }
+.center { text-align: center; }
+.right { text-align: right; }
+.bold { font-weight: 700; }
+.logo { max-width: 46mm; max-height: 18mm; display: block; margin: 0 auto 4px; }
+.shop-name { font-size: {% if width == "A4" %}20px{% else %}15px{% endif %}; font-weight: 700; letter-spacing: .02em; }
+.rule { border-top: 1px dashed #000; margin: 6px 0; }
+.rule-solid { border-top: 1px solid #000; margin: 6px 0; }
+.kv { display: flex; justify-content: space-between; gap: 6px; }
+.kv span:first-child { color: #333; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: .92em; border-bottom: 1px solid #000; padding: 2px 0; }
+td { padding: 2px 0; vertical-align: top; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+.item-name { word-break: break-word; }
+.total-row td { font-size: {% if width == "A4" %}18px{% else %}14px{% endif %}; font-weight: 700; padding-top: 4px; }
+.foot { margin-top: 8px; font-size: .9em; }
+.void {
+  border: 2px solid #000; padding: 4px; text-align: center; font-weight: 700;
+  letter-spacing: .1em; margin: 6px 0;
+}
+.actions { width: var(--w); margin: 10px auto; display: flex; gap: 6px; }
+.actions button, .actions a {
+  flex: 1; padding: 8px; font-size: 13px; font-family: inherit; cursor: pointer;
+  border: 1px solid #bbb; background: #fff; border-radius: 6px; text-align: center;
+  text-decoration: none; color: #000;
+}
+@media print {
+  body { background: #fff; padding: 0; }
+  .slip { width: auto; padding: 0; }
+  .actions { display: none; }
+  @page { margin: {% if width == "A4" %}12mm{% else %}2mm{% endif %}; size: {% if width == "A4" %}A4{% else %}auto{% endif %}; }
+}
+</style>
+</head>
+<body>
+
+<div class="slip">
+  <div class="center">
+    {% if shop.logo %}<img class="logo" src="{{ shop.logo.url }}" alt="">{% endif %}
+    <div class="shop-name">{{ shop.company_name }}</div>
+    {% if shop.tagline %}<div>{{ shop.tagline }}</div>{% endif %}
+    {% if shop.address %}<div>{{ shop.address }}</div>{% endif %}
+    {% if shop.phone %}<div>Tel: {{ shop.phone }}</div>{% endif %}
+    {% if shop.tin %}<div>TIN: {{ shop.tin }}</div>{% endif %}
+  </div>
+
+  <div class="rule-solid"></div>
+
+  {% if sale.status == "VOIDED" %}<div class="void">*** VOIDED ***</div>{% endif %}
+
+  <div class="kv"><span>Receipt</span><span class="bold">{{ sale.receipt_no }}</span></div>
+  <div class="kv"><span>Date</span><span>{{ sale.created_at|date:"d/m/Y  H:i" }}</span></div>
+  <div class="kv"><span>Served by</span><span>{{ sale.served_by.display_name }}</span></div>
+  <div class="kv"><span>Customer</span><span>{{ sale.customer_name }}</span></div>
+
+  <div class="rule"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="item-name">Item</th>
+        <th class="n">Qty</th>
+        <th class="n">Price</th>
+        <th class="n">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td class="item-name">{{ item.product_name }}</td>
+        <td class="n">{{ item.quantity|floatformat:"-3" }}</td>
+        <td class="n">{{ item.unit_price|floatformat:0|intcomma }}</td>
+        <td class="n">{{ item.line_total|floatformat:0|intcomma }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="rule"></div>
+
+  <table>
+    <tr><td>Subtotal</td><td class="n">{{ currency }} {{ sale.subtotal|floatformat:0|intcomma }}</td></tr>
+    {% if sale.discount %}<tr><td>Discount</td><td class="n">- {{ sale.discount|floatformat:0|intcomma }}</td></tr>{% endif %}
+    {% if sale.tax %}<tr><td>VAT</td><td class="n">{{ sale.tax|floatformat:0|intcomma }}</td></tr>{% endif %}
+    <tr class="total-row"><td>TOTAL</td><td class="n">{{ currency }} {{ sale.total|floatformat:0|intcomma }}</td></tr>
+    <tr><td>Paid ({{ sale.get_payment_method_display }})</td><td class="n">{{ sale.amount_paid|floatformat:0|intcomma }}</td></tr>
+    {% if sale.change %}<tr><td class="bold">Change</td><td class="n bold">{{ sale.change|floatformat:0|intcomma }}</td></tr>{% endif %}
+    {% if sale.balance_due %}<tr><td class="bold">Balance due</td><td class="n bold">{{ sale.balance_due|floatformat:0|intcomma }}</td></tr>{% endif %}
+  </table>
+
+  <div class="rule"></div>
+
+  <div class="center foot">
+    <div>{{ items|length }} item{{ items|length|pluralize }}</div>
+    <div>{{ shop.receipt_footer }}</div>
+    {% if shop.email %}<div>{{ shop.email }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="actions">
+  <button onclick="window.print()">Print</button>
+  <a href="?width=A4">A4</a>
+  <a href="?width=80mm">80mm</a>
+  <a href="?width=58mm">58mm</a>
+  <button onclick="window.close()">Close</button>
+</div>
+
+{% if auto_print %}
+<script>
+  // Print as soon as the slip is on screen; the window closes after, so the
+  // cashier is straight back at the till.
+  window.addEventListener('load', function () {
+    window.print();
+    setTimeout(function () { window.close(); }, 800);
+  });
+</script>
+{% endif %}
+</body>
+</html>

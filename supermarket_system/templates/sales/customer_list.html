@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Customers{% endblock %}
+{% block topbar %}<a href="{% url 'customer_create' %}" class="btn btn-primary">Add a customer</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2>Named customers</h2>
+    <div class="spacer"></div>
+    <span class="faint">Most sales are to walk-in customers and need no record. Add regulars and anyone buying on credit.</span>
+  </div>
+  <div class="card-body tight">
+    {% if customers %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th class="num">Total bought</th><th></th></tr></thead>
+        <tbody>
+        {% for c in customers %}
+          <tr>
+            <td><a href="{% url 'customer_detail' c.pk %}"><strong>{{ c.name }}</strong></a>
+              {% if not c.is_active %}<span class="badge">inactive</span>{% endif %}</td>
+            <td class="muted">{{ c.phone|default:"-" }}</td>
+            <td class="muted">{{ c.address|default:"-" }}</td>
+            <td class="num">{{ currency }} {{ c.spent|default:0|floatformat:0|intcomma }}</td>
+            <td class="num"><a href="{% url 'customer_edit' c.pk %}" class="btn btn-sm">Edit</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty"><strong>No customers recorded</strong>Walk-in sales work without this list.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

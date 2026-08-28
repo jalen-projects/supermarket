@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Expiry watch{% endblock %}
+{% block topbar %}<a href="{% url 'report_export' 'expiry' %}" class="btn">Export to Excel (CSV)</a>{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-head">
+    <h2>Already expired</h2>
+    <div class="spacer"></div>
+    <span class="badge badge-danger">{{ expired|length }} batch{{ expired|length|pluralize:"es" }}</span>
+  </div>
+  <div class="card-body tight">
+    {% if expired %}
+    <div class="msg msg-error" style="margin:1rem 1rem 0">
+      The till already refuses to sell these. Take them off the shelf and write them off
+      so the stock figures tell the truth.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th class="num">Quantity</th><th>Expired on</th><th class="num">Value at cost</th><th></th></tr></thead>
+        <tbody>
+        {% for b in expired %}
+          <tr class="row-danger">
+            <td><a href="{% url 'product_detail' b.product.pk %}">{{ b.product.name }}</a></td>
+            <td class="num">{{ b.quantity_remaining|floatformat:"-2" }} <span class="faint">{{ b.product.unit }}</span></td>
+            <td>{{ b.expiry_date|date:"d M Y" }} <span class="faint">({{ b.expiry_date|timesince }} ago)</span></td>
+            <td class="num">{{ currency }} {{ b.value|floatformat:0|intcomma }}</td>
+            <td class="num">
+              <form method="post" action="{% url 'batch_write_off' b.pk %}"
+                    onsubmit="return confirm('Write this batch off the books?')">
+                {% csrf_token %}
+                <input type="hidden" name="reason" value="Expired">
+                <button type="submit" class="btn btn-sm btn-danger">Write off</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty"><strong>Nothing has expired</strong>Good - no money is sitting on the shelf as waste.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Expiring soon</h2>
+    <div class="spacer"></div>
+    <span class="faint">Within {{ shop.expiry_warning_days }} days - change this in Shop details</span>
+  </div>
+  <div class="card-body tight">
+    {% if expiring %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th class="num">Quantity</th><th>Expires</th><th class="num">Days left</th><th class="num">Value at cost</th></tr></thead>
+        <tbody>
+        {% for b in expiring %}
+          <tr class="row-warn">
+            <td><a href="{% url 'product_detail' b.product.pk %}">{{ b.product.name }}</a></td>
+            <td class="num">{{ b.quantity_remaining|floatformat:"-2" }} <span class="faint">{{ b.product.unit }}</span></td>
+            <td>{{ b.expiry_date|date:"d M Y" }}</td>
+            <td class="num"><strong>{{ b.days_to_expiry }}</strong></td>
+            <td class="num">{{ currency }} {{ b.value|floatformat:0|intcomma }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="msg msg-warning" style="margin:1rem">
+      Sell these first, or discount them. Every one that expires is money lost.
+    </div>
+    {% else %}
+      <div class="empty"><strong>Nothing expiring soon</strong>No goods are close to their date.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

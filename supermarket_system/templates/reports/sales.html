@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Sales &amp; sellers{% endblock %}
+{% block topbar %}
+  <a href="{% url 'report_export' 'sales' %}?from={{ start }}&to={{ end }}" class="btn">Export to Excel (CSV)</a>
+  <button onclick="window.print()" class="btn no-print">Print</button>
+{% endblock %}
+{% block content %}
+
+<form method="get" class="toolbar no-print">
+  <div class="field"><label for="from">From</label>
+    <input type="date" name="from" id="from" class="input" value="{{ start }}"></div>
+  <div class="field"><label for="to">To</label>
+    <input type="date" name="to" id="to" class="input" value="{{ end }}"></div>
+  <button type="submit" class="btn">Show</button>
+</form>
+
+<div class="print-only"><h2>{{ shop.company_name }} - sales from {{ start }} to {{ end }}</h2></div>
+
+<div class="grid grid-4" style="margin-bottom:1.25rem">
+  <div class="stat good">
+    <div class="label">Sales</div>
+    <div class="value">{{ currency }} {{ total|floatformat:0|intcomma }}</div>
+    <div class="note">{{ count }} receipt{{ count|pluralize }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Cost of what was sold</div>
+    <div class="value">{{ currency }} {{ cost|floatformat:0|intcomma }}</div>
+    <div class="note">What those goods cost the shop</div>
+  </div>
+  <div class="stat good">
+    <div class="label">Gross profit</div>
+    <div class="value">{{ currency }} {{ profit|floatformat:0|intcomma }}</div>
+    <div class="note">Before rent, wages and power</div>
+  </div>
+  <div class="stat">
+    <div class="label">Best day</div>
+    <div class="value" style="font-size:1.1rem">{% if peak_day %}{{ peak_day.day|date:"d M Y" }}{% else %}-{% endif %}</div>
+    <div class="note">{% if peak_day %}{{ currency }} {{ peak_day.total|floatformat:0|intcomma }}{% endif %}</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><h2>Day by day</h2></div>
+    <div class="card-body tight">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Day</th><th class="num">Receipts</th><th class="num">Taken</th></tr></thead>
+          <tbody>
+          {% for d in by_day %}
+            <tr><td>{{ d.day|date:"D, d M Y" }}</td><td class="num">{{ d.n }}</td>
+                <td class="num">{{ currency }} {{ d.total|floatformat:0|intcomma }}</td></tr>
+          {% empty %}<tr><td colspan="3" class="muted">No sales in this period.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Served by</h2>
+      <div class="spacer"></div>
+      <span class="faint">Each receipt carries the cashier's name</span>
+    </div>
+    <div class="card-body tight">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Seller</th><th class="num">Receipts</th><th class="num">Value</th></tr></thead>
+          <tbody>
+          {% for s in by_seller %}
+            <tr>
+              <td>{% if s.served_by__first_name %}{{ s.served_by__first_name }} {{ s.served_by__last_name }}{% else %}{{ s.served_by__username }}{% endif %}</td>
+              <td class="num">{{ s.n }}</td>
+              <td class="num">{{ currency }} {{ s.total|floatformat:0|intcomma }}</td>
+            </tr>
+          {% empty %}<tr><td colspan="3" class="muted">Nobody sold anything in this period.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Receipts in this period</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Receipt</th><th>Date</th><th>Served by</th><th>Customer</th><th>Paid by</th><th class="num">Total</th></tr></thead>
+        <tbody>
+        {% for s in sales %}
+          <tr>
+            <td><a href="{% url 'sale_detail' s.pk %}" class="mono">{{ s.receipt_no }}</a></td>
+            <td>{{ s.created_at|date:"d M Y, H:i" }}</td>
+            <td>{{ s.served_by.display_name }}</td>
+            <td class="muted">{{ s.customer_name }}</td>
+            <td class="muted">{{ s.get_payment_method_display }}</td>
+            <td class="num">{{ s.total|floatformat:0|intcomma }}</td>
+          </tr>
+        {% empty %}<tr><td colspan="6"><div class="empty"><strong>No sales in this period</strong></div></td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

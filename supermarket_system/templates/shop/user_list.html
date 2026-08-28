@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block heading %}Users{% endblock %}
+{% block topbar %}<a href="{% url 'user_create' %}" class="btn btn-primary">Add a user</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2>Who can sign in</h2>
+    <div class="spacer"></div>
+    <span class="faint">Every sale records the cashier who made it, so each person needs their own login.</span>
+  </div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Phone</th><th class="num">Sales</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for u in users %}
+          <tr>
+            <td><strong>{{ u.display_name }}</strong></td>
+            <td class="mono">{{ u.username }}</td>
+            <td>{% if u.is_admin %}<span class="badge badge-ok">Administrator</span>{% else %}<span class="badge">Cashier</span>{% endif %}</td>
+            <td class="muted">{{ u.phone|default:"-" }}</td>
+            <td class="num">{{ u.sale_count }}</td>
+            <td>{% if u.is_active %}<span class="badge badge-ok">Active</span>{% else %}<span class="badge badge-danger">Blocked</span>{% endif %}</td>
+            <td class="num">
+              <a href="{% url 'user_edit' u.pk %}" class="btn btn-sm">Edit</a>
+              <a href="{% url 'user_password' u.pk %}" class="btn btn-sm">Password</a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

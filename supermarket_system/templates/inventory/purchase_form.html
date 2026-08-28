@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block heading %}{{ title }}{% endblock %}
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="card-head"><h2>Delivery details</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {% include "partials/form_fields.html" %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>What was delivered</h2>
+      <div class="spacer"></div>
+      <span class="faint">Fill in the expiry date wherever the goods have one.</span>
+    </div>
+    <div class="card-body tight">
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}
+        <div class="msg msg-error" style="margin:1rem">{{ formset.non_form_errors }}</div>
+      {% endif %}
+      <div class="table-wrap">
+        <table id="items">
+          <thead>
+            <tr>
+              <th style="min-width:220px">Product</th>
+              <th class="num">Quantity</th>
+              <th class="num">Buying price</th>
+              <th class="num">New selling price</th>
+              <th>Expiry date</th>
+              <th>Remove</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for f in formset %}
+            <tr>
+              {{ f.id }}
+              <td>{{ f.product }}{% for e in f.product.errors %}<div class="errors">{{ e }}</div>{% endfor %}</td>
+              <td class="num">{{ f.quantity }}{% for e in f.quantity.errors %}<div class="errors">{{ e }}</div>{% endfor %}</td>
+              <td class="num">{{ f.buying_price }}{% for e in f.buying_price.errors %}<div class="errors">{{ e }}</div>{% endfor %}</td>
+              <td class="num">{{ f.selling_price }}</td>
+              <td>{{ f.expiry_date }}</td>
+              <td class="num">{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="submit" name="action" value="receive" class="btn btn-primary btn-lg">
+      Receive into stock now
+    </button>
+    <button type="submit" name="action" value="draft" class="btn">Save as a draft</button>
+    <a href="{% url 'purchase_list' %}" class="btn">Cancel</a>
+  </div>
+  <p class="faint" style="margin-top:.6rem">
+    "Receive into stock" is what actually puts the goods on the shelf. A draft changes nothing
+    until you receive it.
+  </p>
+</form>
+{% endblock %}

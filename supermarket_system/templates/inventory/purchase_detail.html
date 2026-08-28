@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}{{ purchase.reference }}{% endblock %}
+{% block topbar %}
+  {% if purchase.status != "RECEIVED" %}
+  <form method="post" action="{% url 'purchase_receive' purchase.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Receive into stock</button>
+  </form>
+  {% endif %}
+  <button onclick="window.print()" class="btn no-print">Print</button>
+{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-head">
+    <h2>Delivery {{ purchase.reference }}</h2>
+    <div class="spacer"></div>
+    {% if purchase.status == "RECEIVED" %}
+      <span class="badge badge-ok">Received into stock</span>
+    {% else %}
+      <span class="badge badge-warn">Draft - stock not yet added</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="grid grid-4">
+      <div><div class="label faint">Supplier</div><strong>{{ purchase.supplier.name }}</strong></div>
+      <div><div class="label faint">Date</div><strong>{{ purchase.date|date:"d M Y" }}</strong></div>
+      <div><div class="label faint">Invoice no.</div><strong class="mono">{{ purchase.invoice_no|default:"-" }}</strong></div>
+      <div><div class="label faint">Received by</div><strong>{{ purchase.received_by.display_name }}</strong></div>
+    </div>
+    {% if purchase.notes %}<p class="muted" style="margin-top:1rem">{{ purchase.notes }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Items</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th class="num">Quantity</th><th class="num">Buying price</th>
+              <th class="num">Line total</th><th>Expiry date</th></tr>
+        </thead>
+        <tbody>
+        {% for i in items %}
+          <tr>
+            <td><a href="{% url 'product_detail' i.product.pk %}">{{ i.product.name }}</a></td>
+            <td class="num">{{ i.quantity|floatformat:"-2" }} <span class="faint">{{ i.product.unit }}</span></td>
+            <td class="num">{{ i.buying_price|floatformat:0|intcomma }}</td>
+            <td class="num">{{ i.line_total|floatformat:0|intcomma }}</td>
+            <td>{{ i.expiry_date|date:"d M Y"|default:"-" }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="3">Total value of this delivery</td>
+              <td class="num">{{ currency }} {{ purchase.total|floatformat:0|intcomma }}</td><td></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Purchases{% endblock %}
+{% block topbar %}<a href="{% url 'purchase_create' %}" class="btn btn-primary">Receive a delivery</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2>Deliveries received</h2>
+    <div class="spacer"></div>
+    <span class="faint">This is the only way stock enters the shop.</span>
+  </div>
+  <div class="card-body tight">
+    {% if page.object_list %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Reference</th><th>Date</th><th>Supplier</th><th>Invoice</th>
+              <th class="num">Items</th><th class="num">Value</th><th>Status</th><th>Received by</th></tr>
+        </thead>
+        <tbody>
+        {% for p in page.object_list %}
+          <tr>
+            <td><a href="{% url 'purchase_detail' p.pk %}" class="mono">{{ p.reference }}</a></td>
+            <td>{{ p.date|date:"d M Y" }}</td>
+            <td><strong>{{ p.supplier.name }}</strong></td>
+            <td class="mono muted">{{ p.invoice_no|default:"-" }}</td>
+            <td class="num">{{ p.item_count }}</td>
+            <td class="num">{{ currency }} {{ p.total|floatformat:0|intcomma }}</td>
+            <td>{% if p.status == "RECEIVED" %}<span class="badge badge-ok">Received</span>{% else %}<span class="badge badge-warn">Draft</span>{% endif %}</td>
+            <td class="muted">{{ p.received_by.display_name }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "partials/pager.html" %}
+    {% else %}
+      <div class="empty"><strong>No deliveries recorded</strong>Record one to put stock on the shelves.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

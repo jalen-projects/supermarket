@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Receipt {{ sale.receipt_no }}{% endblock %}
+{% block topbar %}
+  <a href="{% url 'receipt' sale.pk %}" target="_blank" class="btn btn-primary">Print receipt</a>
+{% endblock %}
+{% block content %}
+
+{% if sale.status == "VOIDED" %}
+<div class="msg msg-error">
+  This receipt was voided by {{ sale.voided_by.display_name }} on
+  {{ sale.voided_at|date:"d M Y, H:i" }}. All the goods went back into stock.
+  {% if sale.void_reason %}Reason given: {{ sale.void_reason }}{% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body">
+    <div class="grid grid-4">
+      <div><div class="label faint">Date</div><strong>{{ sale.created_at|date:"d M Y, H:i" }}</strong></div>
+      <div><div class="label faint">Served by</div><strong>{{ sale.served_by.display_name }}</strong></div>
+      <div><div class="label faint">Customer</div><strong>{{ sale.customer_name }}</strong></div>
+      <div><div class="label faint">Paid by</div><strong>{{ sale.get_payment_method_display }}</strong></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Items</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th class="num">Quantity</th><th class="num">Unit price</th>
+              <th class="num">Amount</th>{% if user.can_see_cost %}<th class="num">Cost</th><th class="num">Profit</th>{% endif %}</tr>
+        </thead>
+        <tbody>
+        {% for i in items %}
+          <tr>
+            <td>{{ i.product_name }}</td>
+            <td class="num">{{ i.quantity|floatformat:"-3" }} <span class="faint">{{ i.product.unit }}</span></td>
+            <td class="num">{{ i.unit_price|floatformat:0|intcomma }}</td>
+            <td class="num">{{ i.line_total|floatformat:0|intcomma }}</td>
+            {% if user.can_see_cost %}
+              <td class="num muted">{{ i.cost_total|floatformat:0|intcomma }}</td>
+              <td class="num">{{ i.profit|floatformat:0|intcomma }}</td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Total</td>
+            <td class="num">{{ currency }} {{ sale.total|floatformat:0|intcomma }}</td>
+            {% if user.can_see_cost %}
+              <td class="num">{{ sale.cost_total|floatformat:0|intcomma }}</td>
+              <td class="num">{{ sale.profit|floatformat:0|intcomma }}</td>
+            {% endif %}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><h2>Payment</h2></div>
+    <div class="card-body">
+      <table>
+        <tr><td class="muted">Subtotal</td><td class="num">{{ sale.subtotal|floatformat:0|intcomma }}</td></tr>
+        {% if sale.discount %}<tr><td class="muted">Discount</td><td class="num">- {{ sale.discount|floatformat:0|intcomma }}</td></tr>{% endif %}
+        {% if sale.tax %}<tr><td class="muted">VAT</td><td class="num">{{ sale.tax|floatformat:0|intcomma }}</td></tr>{% endif %}
+        <tr><td><strong>Total</strong></td><td class="num"><strong>{{ currency }} {{ sale.total|floatformat:0|intcomma }}</strong></td></tr>
+        <tr><td class="muted">Amount paid</td><td class="num">{{ sale.amount_paid|floatformat:0|intcomma }}</td></tr>
+        {% if sale.change %}<tr><td class="muted">Change given</td><td class="num">{{ sale.change|floatformat:0|intcomma }}</td></tr>{% endif %}
+        {% if sale.balance_due %}<tr><td class="muted">Balance due</td><td class="num" style="color:var(--danger)"><strong>{{ sale.balance_due|floatformat:0|intcomma }}</strong></td></tr>{% endif %}
+      </table>
+    </div>
+  </div>
+
+  {% if user.is_admin and sale.status != "VOIDED" %}
+  <div class="card">
+    <div class="card-head"><h2>Void this receipt</h2></div>
+    <div class="card-body">
+      <p class="muted">
+        Voiding cancels the sale and returns every item to the exact batch it came from,
+        expiry date and all. The receipt is kept, marked VOIDED - nothing is ever deleted.
+      </p>
+      <form method="post" action="{% url 'sale_void' sale.pk %}"
+            onsubmit="return confirm('Void {{ sale.receipt_no }} and return the goods to stock?')">
+        {% csrf_token %}
+        <div class="field">
+          <label for="reason">Why is it being voided?</label>
+          <input type="text" name="reason" id="reason" class="input"
+                 placeholder="e.g. customer changed their mind" required>
+        </div>
+        <button type="submit" class="btn btn-danger">Void this receipt</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

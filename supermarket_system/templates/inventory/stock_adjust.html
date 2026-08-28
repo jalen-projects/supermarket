@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block heading %}Adjust stock - {{ product.name }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:620px">
+  <div class="card-head"><h2>Adjust stock</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      {{ product.name }} currently shows
+      <strong>{{ product.stock_available|floatformat:"-2" }} {{ product.unit }}</strong>.
+      Use this when the shelf count does not match the system, or to enter stock the
+      shop already had before this system was installed.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      {% include "partials/form_fields.html" %}
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary">Save adjustment</button>
+        <a href="{% url 'product_detail' product.pk %}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

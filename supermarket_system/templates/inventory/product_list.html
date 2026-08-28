@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Products{% endblock %}
+{% block topbar %}<a href="{% url 'product_create' %}" class="btn btn-primary">Add a product</a>{% endblock %}
+{% block content %}
+
+<div class="tabs">
+  <a href="?" class="{% if not view %}active{% endif %}">All products</a>
+  <a href="?view=low" class="{% if view == 'low' %}active{% endif %}">Low stock</a>
+  <a href="?view=out" class="{% if view == 'out' %}active{% endif %}">Out of stock</a>
+  <a href="?view=inactive" class="{% if view == 'inactive' %}active{% endif %}">Not for sale</a>
+</div>
+
+<form method="get" class="toolbar">
+  {% if view %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
+  <div class="field" style="min-width:280px">
+    <label for="q">Search by name or barcode</label>
+    <input type="text" name="q" id="q" class="input" value="{{ q }}"
+           placeholder="e.g. sugar, or scan a barcode">
+  </div>
+  <div class="field">
+    <label for="category">Category</label>
+    <select name="category" id="category" class="input select">
+      <option value="">All categories</option>
+      {% for c in categories %}
+        <option value="{{ c.id }}" {% if selected_category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn">Search</button>
+  {% if q or selected_category %}<a href="?" class="btn">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  <div class="card-head"><h2>{{ total_products }} product{{ total_products|pluralize }}</h2></div>
+  <div class="card-body tight">
+    {% if page.object_list %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th><th>Barcode</th><th>Category</th>
+            <th class="num">Stock</th><th class="num">Buying</th><th class="num">Selling</th>
+            <th class="num">Profit</th><th>Nearest expiry</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in page.object_list %}
+          <tr {% if p.stock <= 0 %}class="row-danger"{% elif p.stock <= p.effective_reorder_level %}class="row-warn"{% endif %}>
+            <td>
+              <a href="{% url 'product_detail' p.pk %}"><strong>{{ p.name }}</strong></a>
+              {% if not p.is_active %}<span class="badge">not for sale</span>{% endif %}
+            </td>
+            <td class="mono muted">{{ p.barcode|default:"-" }}</td>
+            <td class="muted">{{ p.category.name }}</td>
+            <td class="num"><strong>{{ p.stock|floatformat:"-2" }}</strong> <span class="faint">{{ p.unit }}</span></td>
+            <td class="num muted">{{ p.buying_price|floatformat:0|intcomma }}</td>
+            <td class="num">{{ p.selling_price|floatformat:0|intcomma }}</td>
+            <td class="num">{{ p.profit_per_unit|floatformat:0|intcomma }}</td>
+            <td class="muted">{{ p.nearest_expiry|date:"d M Y"|default:"-" }}</td>
+            <td class="num"><a href="{% url 'product_edit' p.pk %}" class="btn btn-sm">Edit</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "partials/pager.html" %}
+    {% else %}
+      <div class="empty">
+        <strong>No products found</strong>
+        {% if q %}Nothing matches "{{ q }}".{% else %}Add your first product to get started.{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

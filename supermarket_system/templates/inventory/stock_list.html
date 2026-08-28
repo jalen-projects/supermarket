@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Stock available{% endblock %}
+{% block topbar %}
+  <a href="{% url 'report_export' 'stock' %}" class="btn">Export to Excel (CSV)</a>
+  <button onclick="window.print()" class="btn no-print">Print</button>
+{% endblock %}
+{% block content %}
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat">
+    <div class="label">Stock at cost</div>
+    <div class="value">{{ currency }} {{ total_cost|floatformat:0|intcomma }}</div>
+    <div class="note">What the goods on the shelves cost the shop</div>
+  </div>
+  <div class="stat">
+    <div class="label">Stock at selling price</div>
+    <div class="value">{{ currency }} {{ total_retail|floatformat:0|intcomma }}</div>
+    <div class="note">What they will fetch if all are sold</div>
+  </div>
+  <div class="stat good">
+    <div class="label">Profit still on the shelf</div>
+    <div class="value">{{ currency }} {{ potential_profit|floatformat:0|intcomma }}</div>
+    <div class="note">Selling value less cost</div>
+  </div>
+</div>
+
+<form method="get" class="toolbar no-print">
+  <div class="field" style="min-width:300px">
+    <label for="q">Search</label>
+    <input type="text" name="q" id="q" class="input" value="{{ q }}" placeholder="Product name or barcode">
+  </div>
+  <button type="submit" class="btn">Search</button>
+  {% if q %}<a href="?" class="btn">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  <div class="card-head"><h2>What is on the shelves right now</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th>Category</th><th class="num">Available</th><th class="num">Reorder at</th>
+              <th class="num">Value at cost</th><th class="num">Value at selling</th><th>Nearest expiry</th></tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr {% if r.stock <= 0 %}class="row-danger"{% elif r.low %}class="row-warn"{% endif %}>
+            <td><a href="{% url 'product_detail' r.product.pk %}">{{ r.product.name }}</a>
+              {% if r.stock <= 0 %}<span class="badge badge-danger">out</span>
+              {% elif r.low %}<span class="badge badge-warn">low</span>{% endif %}</td>
+            <td class="muted">{{ r.product.category.name }}</td>
+            <td class="num"><strong>{{ r.stock|floatformat:"-2" }}</strong> <span class="faint">{{ r.product.unit }}</span></td>
+            <td class="num muted">{{ r.product.effective_reorder_level|floatformat:"-2" }}</td>
+            <td class="num">{{ r.cost|floatformat:0|intcomma }}</td>
+            <td class="num">{{ r.retail|floatformat:0|intcomma }}</td>
+            <td class="muted">{{ r.expiry|date:"d M Y"|default:"-" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7"><div class="empty"><strong>Nothing to show</strong>Add products and receive a delivery.</div></td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4">Totals</td>
+            <td class="num">{{ currency }} {{ total_cost|floatformat:0|intcomma }}</td>
+            <td class="num">{{ currency }} {{ total_retail|floatformat:0|intcomma }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

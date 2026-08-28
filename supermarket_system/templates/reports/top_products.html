@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Best &amp; slow movers{% endblock %}
+{% block topbar %}<button onclick="window.print()" class="btn no-print">Print</button>{% endblock %}
+{% block content %}
+
+<form method="get" class="toolbar no-print">
+  <div class="field"><label for="from">From</label>
+    <input type="date" name="from" id="from" class="input" value="{{ start }}"></div>
+  <div class="field"><label for="to">To</label>
+    <input type="date" name="to" id="to" class="input" value="{{ end }}"></div>
+  <button type="submit" class="btn">Show</button>
+</form>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head">
+      <h2>Fastest moving</h2>
+      <div class="spacer"></div>
+      <span class="faint">Keep these in stock</span>
+    </div>
+    <div class="card-body tight">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Product</th><th class="num">Units sold</th><th class="num">Revenue</th></tr></thead>
+          <tbody>
+          {% for r in rows %}
+            <tr>
+              <td class="muted">{{ forloop.counter }}</td>
+              <td><strong>{{ r.product_name }}</strong></td>
+              <td class="num">{{ r.qty|floatformat:"-2" }}</td>
+              <td class="num">{{ currency }} {{ r.revenue|floatformat:0|intcomma }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="empty"><strong>Nothing sold in this period</strong></div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Not sold at all</h2>
+      <div class="spacer"></div>
+      <span class="faint">Money sitting still</span>
+    </div>
+    <div class="card-body tight">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Product</th><th class="num">Sitting in stock</th><th class="num">Tied-up cash</th></tr></thead>
+          <tbody>
+          {% for r in dead %}
+            <tr>
+              <td><a href="{% url 'product_detail' r.product.pk %}">{{ r.product.name }}</a></td>
+              <td class="num">{{ r.stock|floatformat:"-2" }} <span class="faint">{{ r.product.unit }}</span></td>
+              <td class="num">{{ currency }} {{ r.tied_up|floatformat:0|intcomma }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3"><div class="empty"><strong>Everything is moving</strong>No dead stock in this period.</div></td></tr>
+          {% endfor %}
+          </tbody>
+          {% if dead %}
+          <tfoot><tr><td colspan="2">Cash tied up in goods that are not moving</td>
+            <td class="num">{{ currency }} {{ tied_up_total|floatformat:0|intcomma }}</td></tr></tfoot>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="msg msg-warning">
+  Items in the right-hand list have not sold once since {{ start }}. Consider discounting
+  them, moving them to eye level, or not reordering them at all.
+</div>
+{% endblock %}
