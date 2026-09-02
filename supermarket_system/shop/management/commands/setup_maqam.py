@@ -12,6 +12,7 @@ The password comes from MAQAM_OWNER_PASSWORD when that is set, so the real
 one lives in the host's environment and never in this repository.
 """
 import os
+import secrets
 import shutil
 
 from django.conf import settings
@@ -30,7 +31,11 @@ PHONE = "0700 000 000"
 
 OWNER_USERNAME = "maqam"
 OWNER_NAME = "Maqam Food City"
-FALLBACK_PASSWORD = "maqam-food-2026"
+
+# Only ever used for a first run on the shop's own machine, which is offline
+# and behind his own front door. It is in a PUBLIC repository, so it must never
+# be the password on anything reachable from the internet - see handle().
+SETUP_PASSWORD = "change-me-on-first-login"
 
 LOGO_SOURCE = "brand/maqam-logo.png"     # inside static/
 LOGO_TARGET = "shop/maqam-logo.png"      # inside media/
@@ -62,7 +67,20 @@ class Command(BaseCommand):
         shop.save()
         self.stdout.write(self.style.SUCCESS(f"Shop branded as {COMPANY}"))
 
-        password = os.environ.get("MAQAM_OWNER_PASSWORD") or FALLBACK_PASSWORD
+        password = os.environ.get("MAQAM_OWNER_PASSWORD")
+        if not password:
+            if os.environ.get("SMMS_ONLINE") == "1":
+                # Facing the internet with no password supplied. Anything
+                # written in this file is public, so lock the account with
+                # something nobody knows rather than something everybody can
+                # read. Set MAQAM_OWNER_PASSWORD to make it usable.
+                password = secrets.token_urlsafe(32)
+                self.stderr.write(self.style.WARNING(
+                    "MAQAM_OWNER_PASSWORD is not set. The owner's account has "
+                    "been locked with a random password - set the variable and "
+                    "deploy again."))
+            else:
+                password = SETUP_PASSWORD
         owner, made = User.objects.get_or_create(
             username=OWNER_USERNAME,
             defaults={"first_name": OWNER_NAME, "role": User.Role.ADMIN},

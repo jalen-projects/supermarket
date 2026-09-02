@@ -34,6 +34,11 @@ and only the demo sets that.
    the password the client will use. Type one you are happy to send him over
    WhatsApp. It is stored on Render, never in this repository.
 
+   **This repository is public**, so his password cannot live in the code — put
+   it here and nowhere else. If you skip this step the demo still builds, but
+   his account is locked with a random password nobody has, and you will have
+   to set the variable and deploy again.
+
 5. Click apply and wait roughly five minutes for the first build.
 
 6. The address will be **`https://maqam-food-city.onrender.com`** (Render will
