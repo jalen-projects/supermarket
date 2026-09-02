@@ -1,0 +1,9 @@
+# The build script is written on Windows but runs on the demo host, which is
+# Linux. Checked out with CRLF it dies on the first line with "bad interpreter"
+# - so this file is pinned to LF no matter which machine touches it.
+*.sh text eol=lf
+
+# The Windows launchers are the mirror image: they must keep CRLF.
+*.bat text eol=crlf
+
+*.png binary

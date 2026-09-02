@@ -1,0 +1,34 @@
+# Blueprint for the online demo of MAQAM FOOD CITY SUPERMARKET.
+#
+# This file only exists so the client can look at the system from his own
+# phone. The supermarket's actual installation is offline on his own computer
+# and is not affected by anything here.
+#
+# In Render: New > Blueprint > pick this repository. Everything below is then
+# applied automatically except SMMS_OWNER_PASSWORD, which Render will prompt
+# for so the password is never written into this repository.
+services:
+  - type: web
+    name: maqam-food-city
+    runtime: python
+    plan: free
+    region: frankfurt          # closest of Render's regions to Uganda
+    rootDir: supermarket_system
+    # "bash build.sh" rather than "./build.sh": the script is authored on
+    # Windows, where git does not reliably carry the executable bit.
+    buildCommand: "bash build.sh"
+    startCommand: "waitress-serve --host=0.0.0.0 --port=$PORT smms.wsgi:application"
+    healthCheckPath: /login/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: SMMS_ONLINE          # switches on the internet-facing hardening
+        value: "1"
+      - key: SMMS_DEBUG
+        value: "0"
+      - key: SMMS_SECRET_KEY      # generated once by Render, then kept
+        generateValue: true
+      - key: SMMS_ADMIN_PASSWORD  # her own administrator account
+        generateValue: true
+      - key: MAQAM_OWNER_PASSWORD # the client's login - set this yourself
+        sync: false

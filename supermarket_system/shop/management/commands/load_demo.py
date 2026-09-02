@@ -64,8 +64,8 @@ class Command(BaseCommand):
 
         shop = ShopSettings.get()
         if shop.company_name == "My Supermarket":
-            shop.company_name = "Nakawa Super Store"
-            shop.address = "Plot 12, Jinja Road, Kampala"
+            shop.company_name = "MAQAM FOOD CITY SUPERMARKET"
+            shop.address = "Kampala, Uganda"
             shop.phone = "0772 000 000"
             shop.receipt_footer = "Thank you for shopping with us. Come again!"
             shop.save()

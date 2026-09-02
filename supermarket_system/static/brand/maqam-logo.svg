@@ -1,0 +1,12 @@
+<!-- MAQAM FOOD CITY SUPERMARKET - primary mark.
+     An M whose shoulders are two market arches, standing on a counter.
+     Green on transparent: the sidebar already sets a white chip behind the
+     logo, and a solid dark block would print heavy and blotchy on a thermal
+     receipt roll. Use maqam-icon.svg where a filled app-icon is wanted. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="97 94 318 318" width="512" height="512" role="img" aria-label="Maqam Food City Supermarket">
+  <g fill="none" stroke="#0e7c5a" stroke-width="38" stroke-linecap="round">
+    <path d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
+    <path d="M256 190 A53 53 0 0 1 362 190 V326"/>
+  </g>
+  <rect x="140" y="366" width="232" height="22" rx="11" fill="#0e7c5a"/>
+</svg>

@@ -3,6 +3,13 @@
 A working system has been built from the feature list on his paper. Take him through it
 on a laptop; it runs without internet, which is itself part of the pitch.
 
+It is branded as **MAQAM FOOD CITY SUPERMARKET**, with a logo, on screen and on every
+printed receipt.
+
+**If you cannot get to him in person,** there is a copy of it online he can open from
+his own phone — see `DEMO.md` for how to put it up and exactly what to send him. Walk
+the same ten-minute order below with him over a call.
+
 ---
 
 ## 1. Show him his own list, working
@@ -46,6 +53,8 @@ few are genuinely new work and should be priced.
 
 | Question | Why it matters |
 |---|---|
+| His **exact address and phone number** | Currently placeholders, and they print on every single receipt |
+| Does he approve the **logo**? | Drawn for him; easy to change now, awkward once it is on printed material |
 | Does he charge **VAT**, and is he on **EFRIS**? | EFRIS means sending each invoice to URA — that needs internet and is a separate job |
 | Does he ever **return goods to a supplier**? | Not built yet; different from voiding a sale |
 | Does he give **customer refunds**? | Currently handled by voiding the whole receipt |

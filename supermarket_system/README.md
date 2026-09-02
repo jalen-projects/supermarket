@@ -5,7 +5,13 @@ shop's own computer. Nothing is sent to the internet, and no monthly fee is owed
 anyone. The shop's whole record lives in one file, `db.sqlite3`.
 
 Built from the client's own feature list — every item on that paper is accounted for
-below.
+below. It is branded for **MAQAM FOOD CITY SUPERMARKET**; `manage.py setup_maqam`
+applies that branding and the owner's login.
+
+There is one throwaway copy of this on the internet, so the client can review the
+system remotely without anyone carrying a computer to him. It holds nothing real and
+changes nothing here — the shop's installation is still entirely offline. See
+`../DEMO.md`.
 
 ---
 
@@ -151,8 +157,8 @@ venv\Scripts\python.exe manage.py test
 Useful commands:
 
 ```
-manage.py setup_shop --company "Nakawa Super Store"   # first-run setup
-manage.py load_demo                                    # demo data for showing a client
+manage.py setup_shop --company "MAQAM FOOD CITY SUPERMARKET"   # first-run setup
+manage.py load_demo                                            # demo data for showing a client
 ```
 
 `load_demo` writes fake sales — never run it on a real shop's database.
