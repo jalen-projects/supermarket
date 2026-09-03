@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Remove {{ product.name }}{% endblock %}
+{% block heading %}Remove {{ product.name }}?{% endblock %}
+{% block content %}
+
+<div class="card" style="max-width:720px">
+  <div class="card-head">
+    <h2>{{ product.name }}</h2>
+    <div class="spacer"></div>
+    <span class="badge">{{ product.category.name }}</span>
+  </div>
+  <div class="card-body">
+
+    {% if can_erase %}
+      <div class="msg msg-warning">
+        <strong>This product will be deleted completely.</strong>
+        It has never been delivered, never been sold and never been counted, so there is
+        no history to lose. This cannot be undone.
+      </div>
+    {% else %}
+      <div class="msg msg-info">
+        <strong>This product will be taken off sale, not erased.</strong>
+        It already has a history &mdash; and that history is on receipts your customers
+        are holding and in your profit figures. Erasing it would change what those
+        receipts add up to.
+      </div>
+
+      <div class="grid grid-4" style="margin:1.1rem 0">
+        <div><div class="label faint">Times sold</div><strong>{{ sold }}</strong></div>
+        <div><div class="label faint">Deliveries</div><strong>{{ delivered }}</strong></div>
+        <div><div class="label faint">Stock movements</div><strong>{{ movements }}</strong></div>
+        <div><div class="label faint">On the shelf now</div>
+          <strong class="{% if stock > 0 %}txt-danger{% endif %}">
+            {{ stock|floatformat:"-2" }} {{ product.unit }}
+          </strong>
+        </div>
+      </div>
+
+      <p class="muted">After this it will:</p>
+      <ul class="muted">
+        <li>no longer come up at the till, so nobody can sell it by mistake;</li>
+        <li>disappear from the product list, though it stays under the
+            <strong>Not for sale</strong> tab;</li>
+        <li>keep every past receipt and report exactly as they are.</li>
+      </ul>
+      {% if stock > 0 %}
+        <div class="msg msg-warning">
+          There are still <strong>{{ stock|floatformat:"-2" }} {{ product.unit }}</strong>
+          on the shelf. If those goods are gone &mdash; sold off, spoiled or thrown away
+          &mdash; write them off first under
+          <a href="{% url 'product_adjust' product.pk %}">Adjust stock</a>, otherwise your
+          stock value will keep counting goods you do not have.
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="btn-row">
+        <button type="submit" class="btn btn-danger btn-lg">
+          {% if can_erase %}Yes, delete it{% else %}Yes, take it off sale{% endif %}
+        </button>
+        <a href="{% url 'product_detail' product.pk %}" class="btn">No, go back</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

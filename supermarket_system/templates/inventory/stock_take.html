@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Stock take - {{ shop.company_name }}{% endblock %}
+{% block heading %}Stock take{% endblock %}
+{% block topbar %}<a href="{% url 'stock_count_list' %}" class="btn">Past stock takes</a>{% endblock %}
+{% block content %}
+
+<div class="msg msg-info">
+  <strong>Counting the goods that are already in the shop.</strong>
+  Walk the shelf, and type what you actually find in the <em>Counted</em> box.
+  Leave a row empty if you did not count that item &mdash; empty is not the same as zero.
+  When you save, the system works out the difference on its own: anything extra is put
+  on the books, anything missing is taken off.
+</div>
+
+<form method="get" class="toolbar" data-tour="scope">
+  <div class="field">
+    <label for="category">Count one shelf at a time</label>
+    <select name="category" id="category" class="input select">
+      <option value="">All products</option>
+      {% for c in categories %}
+        <option value="{{ c.id }}" {% if selected_category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field" style="min-width:240px">
+    <label for="q">Or search for a product</label>
+    <input type="text" name="q" id="q" class="input" value="{{ q }}" placeholder="e.g. sugar">
+  </div>
+  <button type="submit" class="btn">Show the list</button>
+  {% if q or selected_category %}<a href="{% url 'stock_take' %}" class="btn">Clear</a>{% endif %}
+</form>
+
+{% if page.object_list %}
+<form method="post" id="count-form">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Counting sheet</h2>
+      <div class="spacer"></div>
+      <span class="faint" id="counted-so-far">0 counted</span>
+    </div>
+    <div class="card-body tight">
+      <div class="table-wrap">
+        <table class="count-table" data-tour="sheet">
+          <thead>
+            <tr>
+              <th style="min-width:220px">Product</th>
+              <th class="num">System says</th>
+              <th class="num" style="min-width:130px">Counted</th>
+              <th class="num">Difference</th>
+              <th class="num">Cost each</th>
+              <th>Expiry (new stock)</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for p in page.object_list %}
+            <tr data-row="{{ p.id }}">
+              <input type="hidden" name="product_id" value="{{ p.id }}">
+              <td>
+                <strong>{{ p.name }}</strong>
+                <div class="faint">{{ p.category.name }}{% if p.barcode %} &middot; {{ p.barcode }}{% endif %}</div>
+              </td>
+              <td class="num sys" data-sys="{{ p.stock|stringformat:'s' }}">
+                {{ p.stock|floatformat:"-2" }} <span class="faint">{{ p.unit }}</span>
+              </td>
+              <td class="num">
+                <input type="number" class="input counted" name="counted_{{ p.id }}"
+                       min="0" step="{% if p.unit.allow_decimals %}any{% else %}1{% endif %}"
+                       inputmode="decimal" placeholder="-">
+              </td>
+              <td class="num diff faint">&mdash;</td>
+              <td class="num">
+                <input type="number" class="input cost" name="cost_{{ p.id }}"
+                       min="0" step="any" value="{{ p.buying_price|floatformat:0 }}">
+              </td>
+              <td>
+                <input type="date" class="input" name="expiry_{{ p.id }}">
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="scope">What did you count?</label>
+          <input type="text" name="scope" id="scope" class="input" value="{{ scope }}"
+                 placeholder="e.g. Beverages, or the front shelf">
+        </div>
+        <div class="field">
+          <label for="note">Note (optional)</label>
+          <input type="text" name="note" id="note" class="input"
+                 placeholder="Anything worth remembering about this count">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="msg msg-error" id="count-error" hidden></div>
+  <div class="btn-row">
+    <button type="submit" class="btn btn-primary btn-lg" data-tour="save-count">Save the count &amp; correct the stock</button>
+    <a href="{% url 'stock_list' %}" class="btn">Cancel</a>
+  </div>
+  <p class="faint" style="margin-top:.6rem">
+    Nothing changes until you press save, and every correction is written into
+    <a href="{% url 'movement_list' %}">Stock movements</a> under this count's number.
+  </p>
+</form>
+{% else %}
+  <div class="card"><div class="card-body">
+    <div class="empty">
+      <strong>No products to count here</strong>
+      {% if q or selected_category %}Nothing matches that. Try another shelf.
+      {% else %}Add your products first, then come back and count them.{% endif %}
+    </div>
+  </div></div>
+{% endif %}
+
+{% if recent_counts %}
+<div class="card">
+  <div class="card-head"><h3>Recent stock takes</h3></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Number</th><th>Date</th><th>What was counted</th><th>Counted by</th><th class="num">Items</th></tr></thead>
+        <tbody>
+        {% for c in recent_counts %}
+          <tr>
+            <td><a href="{% url 'stock_count_detail' c.pk %}" class="mono">{{ c.reference }}</a></td>
+            <td class="muted">{{ c.date|date:"d M Y" }}</td>
+            <td>{{ c.scope|default:"-" }}</td>
+            <td class="muted">{{ c.counted_by.display_name }}</td>
+            <td class="num">{{ c.line_count }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Show the difference the moment a number is typed, so a mistyped count is
+   caught on the shelf rather than discovered in next month's profit report. */
+(function () {
+  var form = document.getElementById('count-form');
+  if (!form) return;
+  var tally = document.getElementById('counted-so-far');
+
+  function refresh() {
+    var counted = 0;
+    Array.prototype.forEach.call(form.querySelectorAll('tr[data-row]'), function (tr) {
+      var input = tr.querySelector('.counted');
+      var cell = tr.querySelector('.diff');
+      var sys = parseFloat(tr.querySelector('.sys').dataset.sys) || 0;
+      var raw = input.value.trim();
+      if (raw === '') {
+        cell.textContent = '—';
+        cell.className = 'num diff faint';
+        return;
+      }
+      counted += 1;
+      var diff = (parseFloat(raw) || 0) - sys;
+      var rounded = Math.round(diff * 1000) / 1000;
+      cell.textContent = rounded > 0 ? '+' + rounded : String(rounded);
+      cell.className = 'num diff' + (rounded === 0 ? ' faint' : (rounded < 0 ? ' short' : ' over'));
+    });
+    tally.textContent = counted + (counted === 1 ? ' product counted' : ' products counted');
+  }
+
+  form.addEventListener('input', function (e) {
+    if (e.target.classList.contains('counted')) refresh();
+  });
+
+  // Inline, not a browser alert box: a pop-up dialog on a till freezes the
+  // whole page until someone clicks it, and the cashier may not be looking.
+  form.addEventListener('submit', function (e) {
+    var box = document.getElementById('count-error');
+    var any = false;
+    Array.prototype.forEach.call(form.querySelectorAll('.counted'), function (i) {
+      if (i.value.trim() !== '') any = true;
+    });
+    if (!any) {
+      e.preventDefault();
+      box.textContent = 'Type at least one quantity in the Counted column before saving.';
+      box.hidden = false;
+      box.scrollIntoView({ block: 'nearest' });
+    } else {
+      box.hidden = true;
+    }
+  });
+
+  refresh();
+})();
+</script>
+{% endblock %}

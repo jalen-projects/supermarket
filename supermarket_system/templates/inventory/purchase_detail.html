@@ -3,6 +3,7 @@
 {% block heading %}{{ purchase.reference }}{% endblock %}
 {% block topbar %}
   {% if purchase.status != "RECEIVED" %}
+  <a href="{% url 'purchase_delete' purchase.pk %}" class="btn btn-danger-ghost">Delete draft</a>
   <form method="post" action="{% url 'purchase_receive' purchase.pk %}">
     {% csrf_token %}
     <button type="submit" class="btn btn-primary">Receive into stock</button>
@@ -24,7 +25,7 @@
   </div>
   <div class="card-body">
     <div class="grid grid-4">
-      <div><div class="label faint">Supplier</div><strong>{{ purchase.supplier.name }}</strong></div>
+      <div><div class="label faint">Supplier</div><strong>{{ purchase.supplier_name }}</strong></div>
       <div><div class="label faint">Date</div><strong>{{ purchase.date|date:"d M Y" }}</strong></div>
       <div><div class="label faint">Invoice no.</div><strong class="mono">{{ purchase.invoice_no|default:"-" }}</strong></div>
       <div><div class="label faint">Received by</div><strong>{{ purchase.received_by.display_name }}</strong></div>

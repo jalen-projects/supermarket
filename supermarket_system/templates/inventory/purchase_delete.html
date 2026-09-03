@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ purchase.reference }}{% endblock %}
+{% block heading %}Delete draft delivery {{ purchase.reference }}?{% endblock %}
+{% block content %}
+
+<div class="card" style="max-width:640px">
+  <div class="card-body">
+    <div class="msg msg-warning">
+      <strong>This draft will be deleted.</strong>
+      It was never received, so no stock changes and nothing on your shelves is affected.
+      This cannot be undone.
+    </div>
+
+    <div class="grid grid-3" style="margin:1.1rem 0">
+      <div><div class="label faint">Supplier</div><strong>{{ purchase.supplier_name }}</strong></div>
+      <div><div class="label faint">Date</div><strong>{{ purchase.date|date:"d M Y" }}</strong></div>
+      <div><div class="label faint">Lines typed in</div><strong>{{ purchase.item_count }}</strong></div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="btn-row">
+        <button type="submit" class="btn btn-danger btn-lg">Yes, delete this draft</button>
+        <a href="{% url 'purchase_detail' purchase.pk %}" class="btn">No, go back</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

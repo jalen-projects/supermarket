@@ -42,6 +42,9 @@ def pos(request):
         "quick_products": quick,
         "vat_percent": shop.vat_percent,
         "payment_methods": Sale.Payment.choices,
+        # Ugandan shilling notes. One tap beats typing five digits with a
+        # queue behind you, and it is where most change errors come from.
+        "tender_notes": [1000, 2000, 5000, 10000, 20000, 50000],
     })
 
 

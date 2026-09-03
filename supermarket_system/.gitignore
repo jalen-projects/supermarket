@@ -1,6 +1,10 @@
 venv/
 db.sqlite3
 db.sqlite3-journal
+# WAL mode keeps two companion files next to the database. They are part of
+# the shop's live data, never of the source.
+db.sqlite3-wal
+db.sqlite3-shm
 .secret_key
 staticfiles/
 media/

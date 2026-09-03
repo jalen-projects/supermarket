@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Stock takes - {{ shop.company_name }}{% endblock %}
+{% block heading %}Stock takes{% endblock %}
+{% block topbar %}<a href="{% url 'stock_take' %}" class="btn btn-primary">New stock take</a>{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-head"><h2>Every count that has been done</h2></div>
+  <div class="card-body tight">
+    {% if page.object_list %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Number</th><th>Date</th><th>What was counted</th><th>Counted by</th>
+            <th class="num">Products</th><th class="num">Did not match</th><th class="num">Value of the gap</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for c in page.object_list %}
+          <tr>
+            <td><a href="{% url 'stock_count_detail' c.pk %}" class="mono"><strong>{{ c.reference }}</strong></a></td>
+            <td class="muted">{{ c.date|date:"d M Y" }}</td>
+            <td>{{ c.scope|default:"-" }}</td>
+            <td class="muted">{{ c.counted_by.display_name }}</td>
+            <td class="num">{{ c.n }}</td>
+            <td class="num {% if c.difference_count %}txt-danger{% endif %}">{{ c.difference_count }}</td>
+            <td class="num {% if c.value_difference < 0 %}txt-danger{% endif %}">
+              {{ c.value_difference|floatformat:0|intcomma }}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "partials/pager.html" %}
+    {% else %}
+      <div class="empty">
+        <strong>No stock take has been done yet</strong>
+        A stock take is how the goods already sitting on your shelves get onto the system,
+        and afterwards it is how you find out what has gone missing.
+        <div style="margin-top:1rem"><a href="{% url 'stock_take' %}" class="btn btn-primary">Start the first one</a></div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

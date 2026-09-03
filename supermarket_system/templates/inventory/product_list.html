@@ -58,7 +58,11 @@
             <td class="num">{{ p.selling_price|floatformat:0|intcomma }}</td>
             <td class="num">{{ p.profit_per_unit|floatformat:0|intcomma }}</td>
             <td class="muted">{{ p.nearest_expiry|date:"d M Y"|default:"-" }}</td>
-            <td class="num"><a href="{% url 'product_edit' p.pk %}" class="btn btn-sm">Edit</a></td>
+            <td class="num" style="white-space:nowrap">
+              <a href="{% url 'product_edit' p.pk %}" class="btn btn-sm">Edit</a>
+              <a href="{% url 'product_delete' p.pk %}" class="btn btn-sm btn-danger-ghost"
+                 {% if forloop.first %}data-tour="remove"{% endif %}>Remove</a>
+            </td>
           </tr>
         {% endfor %}
         </tbody>

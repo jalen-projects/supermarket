@@ -96,7 +96,7 @@ def receive_purchase(purchase, user):
         StockMovement.objects.create(
             product=line.product, batch=batch, kind=StockMovement.Kind.PURCHASE,
             quantity=line.quantity, reference=purchase.reference,
-            reason=f"From {purchase.supplier}", user=user)
+            reason=f"From {purchase.supplier_name}", user=user)
 
         # The latest delivery sets the cost price used for margin display.
         fields = ["buying_price"]
@@ -112,16 +112,24 @@ def receive_purchase(purchase, user):
 
 
 @transaction.atomic
-def adjust_stock(*, product, quantity, kind, reason, user, batch=None):
-    """Manual correction: opening stock, breakage, theft, expiry write-off."""
+def adjust_stock(*, product, quantity, kind, reason, user, batch=None,
+                 buying_price=None, expiry_date=None, reference=""):
+    """Manual correction: opening stock, breakage, theft, expiry write-off.
+
+    `buying_price` and `expiry_date` only apply when stock is going IN and no
+    batch was named. They exist for opening stock and stock takes: goods that
+    were already in the shop still cost something and still expire, and if that
+    is not captured at the moment they are entered it is never captured at all.
+    """
     quantity = Decimal(str(quantity))
     if quantity == 0:
         raise ValueError("Adjustment quantity cannot be zero.")
 
     if quantity > 0 and batch is None:
+        cost = product.buying_price if buying_price is None else Decimal(str(buying_price))
         batch = StockBatch.objects.create(
             product=product, quantity_received=quantity, quantity_remaining=quantity,
-            buying_price=product.buying_price, note=reason)
+            buying_price=cost, expiry_date=expiry_date, note=reason)
     elif quantity < 0:
         outstanding = -quantity
         candidates = ([batch] if batch else
@@ -141,8 +149,82 @@ def adjust_stock(*, product, quantity, kind, reason, user, batch=None):
 
     StockMovement.objects.create(
         product=product, batch=batch, kind=kind, quantity=quantity,
-        reason=reason, user=user)
+        reference=reference, reason=reason, user=user)
     return product
+
+
+@transaction.atomic
+def apply_stock_count(*, rows, user, scope="", note="", date=None):
+    """Record a physical count of the shelves and move stock to match it.
+
+    This is the client's starred question - "how do we record the things
+    already in the supermarket". He counts what is on the shelf, types it in,
+    and the system does the arithmetic: anything short is written down,
+    anything extra is brought onto the books.
+
+    `rows` is a list of dicts: {"product": Product, "counted": Decimal,
+    "buying_price": Decimal|None, "expiry_date": date|None}. Rows where the
+    count already matches the system are still recorded - a count that found no
+    difference is evidence, and the owner should be able to see he checked.
+
+    The whole count is one transaction. A count that fails half way through
+    would leave the shelves and the books disagreeing in a new way, which is
+    worse than not counting at all.
+    """
+    from inventory.models import StockCount, StockCountLine
+
+    rows = [r for r in rows if r.get("counted") is not None]
+    if not rows:
+        raise ValueError("Nothing was counted. Type at least one quantity.")
+
+    count = StockCount.objects.create(
+        counted_by=user, scope=scope[:120], note=note,
+        **({"date": date} if date else {}))
+
+    for row in rows:
+        product = row["product"]
+        counted = Decimal(str(row["counted"]))
+        if counted < 0:
+            raise ValueError(
+                f"The count for {product.name} cannot be less than zero. "
+                "You cannot find minus three tins on a shelf.")
+
+        # Read the shelf total inside the transaction, so a sale rung up on
+        # another till while he was counting cannot be silently overwritten.
+        system_quantity = product.stock_available
+        cost = row.get("buying_price")
+        cost = product.buying_price if cost in (None, "") else Decimal(str(cost))
+
+        StockCountLine.objects.create(
+            count=count, product=product, system_quantity=system_quantity,
+            counted_quantity=counted, buying_price=cost)
+
+        difference = counted - system_quantity
+        if difference == 0:
+            continue
+
+        # The first time a product is ever given stock this way it is opening
+        # stock, not a correction. The distinction matters on the reports: an
+        # opening balance is not shrinkage.
+        first_time = not product.movements.exists()
+        kind = (StockMovement.Kind.OPENING if first_time and difference > 0
+                else StockMovement.Kind.ADJUST)
+        reason = (f"Stock take {count.reference}"
+                  + (f" - {scope}" if scope else ""))
+
+        adjust_stock(product=product, quantity=difference, kind=kind,
+                     reason=reason, user=user, reference=count.reference,
+                     buying_price=cost if difference > 0 else None,
+                     expiry_date=row.get("expiry_date") if difference > 0 else None)
+
+        # A product entered for the first time with no cost price on file would
+        # report 100% profit forever. If the count supplied one, keep it.
+        if difference > 0 and row.get("buying_price") not in (None, "") \
+                and not product.buying_price:
+            product.buying_price = cost
+            product.save(update_fields=["buying_price"])
+
+    return count
 
 
 @transaction.atomic

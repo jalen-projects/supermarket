@@ -18,6 +18,24 @@ Nothing in this repository makes the shop's copy talk to the internet. The
 online hardening in `smms/settings.py` only switches on when `SMMS_ONLINE=1`,
 and only the demo sets that.
 
+**This is how the client checks the system.** He is too far away to visit, so the
+Render URL is the copy he opens on his phone whenever he wants to look at
+something or check that a change has landed. Send him that link — never only the
+GitHub one; a shop owner will not install Django. GitHub is proof of work, not
+the thing he clicks.
+
+Two things to say to him every time, because the free plan makes both of them
+look like faults:
+
+- **Nothing he types there is kept.** The demo database is rebuilt on every
+  deploy and every wake-up. His real data lives on the shop's computer.
+- **The first page after a quiet spell takes 30-60 seconds.** The free plan puts
+  the site to sleep after 15 minutes. It is not the system being slow.
+
+He should also run the **guided tour** on it — it works on the demo exactly as it
+does in the shop, and it is the quickest way for him to find his way around
+without a phone call.
+
 ---
 
 ## Setting it up (about 10 minutes, once)

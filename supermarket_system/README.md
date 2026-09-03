@@ -31,7 +31,7 @@ changes nothing here — the shop's installation is still entirely offline. See
 | Expiry date | On each **delivery batch**, not on the product — see the note below |
 | Category | **Stock → Categories** |
 | Measurements | **Stock → Measurements** — piece, kg, litre, crate, tray |
-| Purchase | **Stock → Purchases** — the only way goods enter the shop |
+| Purchase | **Stock → Purchases** — supplier and invoice number are both optional |
 | Stock available | **Stock → Stock available**, valued at cost and at selling price |
 | Expired item | **Stock → Expiry watch**, plus a report; the till refuses to sell expired goods |
 | Low stock | Flagged on the dashboard, the product list and the stock report |
@@ -59,6 +59,15 @@ These were not on the paper but a shop hits them within the first week:
 - **Backup** — one click writes a dated copy. An offline shop with one hard disk and no
   backup is one theft away from having no records at all.
 - **Spreadsheet export** — stock, sales and expiry to CSV, for Excel.
+- **Stock take** — count a shelf, and the system corrects the books and reports what the
+  gap is worth. This is how goods that pre-date the system get onto it, and afterwards
+  it is how shrinkage is found.
+- **A "How do I…?" page** in the app, written from the questions the owner actually
+  asked rather than from the menu structure.
+- **A guided tour** (`static/js/tour.js`) that walks the owner through the real screens,
+  one chapter per question he asked. It spans several pages, so progress is kept in
+  `sessionStorage` and picked up again after each page load; whether he has taken it is
+  kept on the **user**, not the browser, so the second till does not offer it again.
 
 ---
 
@@ -104,18 +113,34 @@ Shop details, and it can be switched for a single print from the receipt window.
 
 ---
 
-## Adding a second till later
+## Running more than one till
 
-Nothing needs reinstalling. The system already listens on the shop's network:
+Several computers can use the system at once and they all share the same data. It stays
+completely offline; the machines only talk to each other over the shop's own network.
 
-1. Leave the first computer running the system. Its address is shown in the black
-   window, like `http://192.168.1.5:8000/`.
-2. On the second computer, open that address in a browser. Add it as a bookmark or a
-   desktop shortcut.
-3. Allow the port through Windows Firewall the first time it asks.
+One computer is the **server** — the only one the system is installed on, and the only
+one holding the data. Every other till just opens a browser. **Nothing is installed on
+them.** That is deliberate: two installed copies would be two sets of books disagreeing
+with each other by lunchtime.
 
-Both tills share one set of stock. The system locks each batch while a sale is being
-written, so two cashiers cannot sell the same last packet.
+1. Leave the server running the system. Its address is printed in the black window and
+   on the **Setup → Other computers** page, like `http://192.168.1.5:8000/`.
+2. On the server, right-click **`ALLOW OTHER TILLS.bat`** and choose **Run as
+   administrator**. Once only. Windows Firewall blocks the other tills until this is
+   done, and it is nearly always why it fails the first time.
+3. On the other computer, open that address in a browser and bookmark it.
+
+What makes this safe:
+
+- **SQLite runs in WAL mode** (`smms/settings.py`), so one till saving a sale does not
+  freeze every other screen. This is the single most important setting for a second till.
+- **`record_sale` locks the batches it draws from**, so two cashiers cannot sell the same
+  last packet.
+- **Sessions are not re-saved on every request**, which would otherwise make session
+  writes the busiest thing in the shop.
+
+Limits worth stating out loud: three or four computers in one shop is comfortable, not
+fifty. If the server is off, every till stops. Each till needs its own receipt printer.
 
 ---
 
@@ -127,6 +152,12 @@ Everything is in **`db.sqlite3`** in this folder. That single file is the shop.
 - Then copy the backup file onto a flash disk that does **not** live in the shop.
 
 A backup taken and left on the same machine protects against nothing.
+
+**Do not back up by copying `db.sqlite3` by hand.** The database runs in WAL mode, so
+the newest sales can still be in `db.sqlite3-wal` — a copy of the one file would quietly
+be missing the morning's takings. The Backup screen uses SQLite's own backup API and is
+safe while the shop is trading. If you must copy by hand, stop the system first and take
+all three files (`db.sqlite3`, `-wal`, `-shm`).
 
 ---
 
@@ -144,9 +175,13 @@ templates/      one base template, one stylesheet
 ```
 
 `sales/services.py` is the important file. `record_sale`, `receive_purchase`,
-`adjust_stock` and `write_off_batch` are the only functions that may change stock, and
-each runs in a single database transaction. Views call them; views never touch stock
-themselves.
+`adjust_stock`, `apply_stock_count` and `write_off_batch` are the only functions that may
+change stock, and each runs in a single database transaction. Views call them; views
+never touch stock themselves.
+
+`sales/tests_client_questions.py` holds the tests for the things the shop owner came back
+and asked for, named after his questions rather than after our models — so when one
+breaks it is obvious which promise to him was broken.
 
 Run the tests before handing over any change:
 

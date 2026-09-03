@@ -9,7 +9,7 @@
   <div>
     <div class="card">
       <div class="card-body">
-        <div class="scan-box">
+        <div class="scan-box" data-tour="scan">
           <input type="text" id="scan" autocomplete="off" autofocus
                  placeholder="Scan barcode, or type a product name...">
           <div class="results" id="results" hidden></div>
@@ -29,7 +29,7 @@
       </div>
       <div class="card-body tight">
         <div class="table-wrap">
-          <table class="cart-table">
+          <table class="cart-table" data-tour="cart">
             <thead>
               <tr>
                 <th>Product</th>
@@ -104,21 +104,32 @@
           <div class="line"><span class="muted">Subtotal</span><span id="t-sub">0</span></div>
           <div class="line"><span class="muted">Discount</span><span id="t-disc">0</span></div>
           {% if vat_percent %}<div class="line"><span class="muted">VAT</span><span id="t-vat">0</span></div>{% endif %}
-          <div class="grand"><span>TOTAL</span><span class="amt" id="t-total">0</span></div>
+          <div class="grand" data-tour="total"><span>TOTAL</span><span class="amt" id="t-total">0</span></div>
         </div>
 
-        <div class="field" style="margin-top:1rem">
-          <label for="paid">Cash received ({{ currency }})</label>
+        <div class="field" style="margin-top:1rem" data-tour="paid">
+          <label for="paid">Cash received from the customer ({{ currency }})</label>
           <input type="number" id="paid" class="input" min="0" step="any"
                  style="font-size:1.15rem;padding:.7rem" placeholder="0">
         </div>
-        <div class="change-line" id="change-line" hidden>Change: <span id="t-change">0</span></div>
+        <!-- Tender buttons. The cashier is holding notes, not a keyboard: one
+             tap for "he gave me exactly the total", one per common note. -->
+        <div class="tender-row">
+          <button type="button" class="btn btn-sm tender" data-tender="exact">Exact money</button>
+          {% for note in tender_notes %}
+            <button type="button" class="btn btn-sm tender" data-tender="{{ note }}">{{ note|floatformat:0|intcomma }}</button>
+          {% endfor %}
+        </div>
+        <div class="change-line" id="change-line" data-tour="change" hidden>Change: <span id="t-change">0</span></div>
 
         <div class="btn-row" style="margin-top:1rem">
-          <button type="button" class="btn btn-primary btn-lg btn-block" id="checkout">
-            Complete sale &amp; print (F9)
+          <button type="button" class="btn btn-primary btn-lg btn-block" id="checkout" data-tour="checkout">
+            CASH OUT &mdash; complete payment (F9)
           </button>
         </div>
+        <p class="faint" style="margin:.5rem 0 0;text-align:center">
+          This takes the money, prints the receipt and removes the goods from stock.
+        </p>
         <div class="btn-row" style="margin-top:.5rem">
           <button type="button" class="btn btn-block" id="clear">Clear the sale</button>
         </div>

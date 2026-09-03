@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% block head %}{% endblock %}
 </head>
-<body>
+<body data-page="{{ request.resolver_match.url_name }}">
 <div class="shell">
   <aside class="sidebar no-print">
     <div class="brand">
@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <nav class="nav">
+    <nav class="nav" data-tour="nav">
       <div class="nav-label">Selling</div>
       <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">New sale (till)</a>
       <a href="{% url 'sale_list' %}" class="{% if request.resolver_match.url_name == 'sale_list' %}active{% endif %}">Receipts</a>
@@ -31,6 +31,7 @@
       <div class="nav-label">Stock</div>
       <a href="{% url 'product_list' %}" class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">Products</a>
       <a href="{% url 'stock_list' %}" class="{% if request.resolver_match.url_name == 'stock_list' %}active{% endif %}">Stock available</a>
+      <a href="{% url 'stock_take' %}" class="{% if request.resolver_match.url_name == 'stock_take' or request.resolver_match.url_name == 'stock_count_list' or request.resolver_match.url_name == 'stock_count_detail' %}active{% endif %}">Stock take (count the shelves)</a>
       <a href="{% url 'purchase_list' %}" class="{% if request.resolver_match.url_name == 'purchase_list' %}active{% endif %}">Purchases</a>
       <a href="{% url 'expiry_list' %}" class="{% if request.resolver_match.url_name == 'expiry_list' %}active{% endif %}">Expiry watch</a>
       <a href="{% url 'supplier_list' %}" class="{% if request.resolver_match.url_name == 'supplier_list' %}active{% endif %}">Suppliers</a>
@@ -47,8 +48,12 @@
       <div class="nav-label">Setup</div>
       <a href="{% url 'shop_settings' %}" class="{% if request.resolver_match.url_name == 'shop_settings' %}active{% endif %}">Shop details</a>
       <a href="{% url 'user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">Users</a>
+      <a href="{% url 'network' %}" data-tour="nav-network" class="{% if request.resolver_match.url_name == 'network' %}active{% endif %}">Other computers</a>
       <a href="{% url 'backup' %}" class="{% if request.resolver_match.url_name == 'backup' %}active{% endif %}">Backup</a>
       {% endif %}
+
+      <div class="nav-label">Help</div>
+      <a href="{% url 'help' %}" class="{% if request.resolver_match.url_name == 'help' %}active{% endif %}">How do I&hellip;?</a>
     </nav>
 
     <div class="sidebar-foot">
@@ -95,5 +100,25 @@
   })();
 </script>
 {% block scripts %}{% endblock %}
+
+{# ---- the guided tour -------------------------------------------------- #}
+{# Rendered on every page because the tour walks across several of them and
+   has to pick itself up again after each page load. The script does nothing
+   at all unless it is started. #}
+{% if user.is_authenticated %}
+  <div hidden id="tour-cfg"
+       data-admin="{% if user.is_admin %}1{% else %}0{% endif %}"
+       data-auto="{% if not user.has_taken_tour %}1{% else %}0{% endif %}"
+       data-state-url="{% url 'tour_state' %}"
+       data-urls='{"dashboard": "{% url 'dashboard' %}",
+                   "pos": "{% url 'pos' %}"{% if user.is_admin %},
+                   "product_create": "{% url 'product_create' %}",
+                   "stock_take": "{% url 'stock_take' %}",
+                   "purchase_create": "{% url 'purchase_create' %}",
+                   "product_list": "{% url 'product_list' %}",
+                   "backup": "{% url 'backup' %}"{% endif %}}'></div>
+  {% csrf_token %}
+  <script src="{% static 'js/tour.js' %}"></script>
+{% endif %}
 </body>
 </html>

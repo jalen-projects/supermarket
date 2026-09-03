@@ -6,7 +6,7 @@
 {% block content %}
 
 <div class="grid grid-4" style="margin-bottom:1.25rem">
-  <div class="stat good">
+  <div class="stat good" data-tour="takings">
     <div class="label">Today's takings</div>
     <div class="value">{{ currency }} {{ todays_total|floatformat:0|intcomma }}</div>
     <div class="note">{{ todays_count }} receipt{{ todays_count|pluralize }} today</div>
@@ -17,7 +17,7 @@
     <div class="note">{{ my_count }} sale{{ my_count|pluralize }} on your name</div>
   </div>
   {% if user.is_admin %}
-  <div class="stat {% if low_stock_count %}caution{% endif %}">
+  <div class="stat {% if low_stock_count %}caution{% endif %}" data-tour="alerts">
     <div class="label">Low stock</div>
     <div class="value">{{ low_stock_count }}</div>
     <div class="note">{% if low_stock_count %}<a href="{% url 'product_list' %}?view=low">See what to reorder</a>{% else %}Every shelf is above its reorder level{% endif %}</div>

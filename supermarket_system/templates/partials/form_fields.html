@@ -2,8 +2,12 @@
 {% if form.non_field_errors %}
   <div class="msg msg-error">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
 {% endif %}
+{# data-tour-field gives the guided tour a stable handle on any single field of
+   any form in the system. Its own namespace, so a field called "form" or
+   "remove" can never collide with the tour's hand-placed data-tour anchors. #}
 {% for field in form %}
-  <div class="field{% if field.field.widget.input_type == 'checkbox' %} field-inline{% endif %}">
+  <div class="field{% if field.field.widget.input_type == 'checkbox' %} field-inline{% endif %}"
+       data-tour-field="{{ field.name }}">
     {% if field.field.widget.input_type == 'checkbox' %}
       {{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>
     {% else %}

@@ -112,12 +112,44 @@ WSGI_APPLICATION = "smms.wsgi.application"
 
 # ---------------------------------------------------------------------------
 # Database - a single SQLite file. Backing up the shop = copying this file.
+#
+# More than one till can use this system at the same time. They do NOT each
+# keep their own copy: one computer runs the server and holds the only
+# database, and the other computers reach it over the shop's own network with
+# a browser. Everything below is what makes that safe.
+#
+#   journal_mode=WAL   Readers no longer block the writer and the writer no
+#                      longer blocks readers. Without it, one cashier saving a
+#                      sale freezes every other screen in the shop for the
+#                      length of the write. This is the single most important
+#                      line for a second till.
+#   synchronous=NORMAL Under WAL this is still crash-safe for the database.
+#                      Full fsync on every commit makes a cheap shop PC crawl.
+#   transaction_mode   IMMEDIATE takes the write lock at the start of a
+#                      transaction rather than half way through, which is what
+#                      turns "database is locked" errors into a short wait.
+#   timeout            How long a till waits for the lock before giving up.
+#                      20 seconds is far longer than any write here takes.
+#
+# WAL keeps db.sqlite3-wal and db.sqlite3-shm alongside the database. The
+# backup screen already copies through Django rather than the raw file, so it
+# is not affected - but if anyone ever copies the file by hand, they must copy
+# all three or take the copy while the system is stopped.
 # ---------------------------------------------------------------------------
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
-        "OPTIONS": {"timeout": 20},
+        "OPTIONS": {
+            "timeout": 20,
+            "transaction_mode": "IMMEDIATE",
+            "init_command": (
+                "PRAGMA journal_mode=WAL;"
+                "PRAGMA synchronous=NORMAL;"
+                "PRAGMA busy_timeout=20000;"
+                "PRAGMA foreign_keys=ON;"
+            ),
+        },
     }
 }
 
@@ -162,6 +194,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Session lasts the working day; a cashier stays logged in through their shift.
 SESSION_COOKIE_AGE = 60 * 60 * 12
-SESSION_SAVE_EVERY_REQUEST = True
+# Deliberately off. Re-saving the session on every request means a database
+# WRITE on every page view, and with three tills open that is the busiest
+# writer in the shop - all of it to extend a cookie that already lasts longer
+# than a shift. Sessions still save whenever something in them changes.
+SESSION_SAVE_EVERY_REQUEST = False
 
 MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ count.reference }} - {{ shop.company_name }}{% endblock %}
+{% block heading %}Stock take {{ count.reference }}{% endblock %}
+{% block topbar %}
+  <a href="{% url 'stock_take' %}" class="btn btn-primary">New stock take</a>
+  <button type="button" class="btn no-print" onclick="window.print()">Print</button>
+{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-body">
+    <div class="grid grid-3">
+      <div><div class="label faint">Date</div><strong>{{ count.date|date:"d M Y" }}</strong></div>
+      <div><div class="label faint">What was counted</div><strong>{{ count.scope|default:"Not stated" }}</strong></div>
+      <div><div class="label faint">Counted by</div><strong>{{ count.counted_by.display_name }}</strong></div>
+      <div><div class="label faint">Products counted</div><strong>{{ count.line_count }}</strong></div>
+      <div>
+        <div class="label faint">Did not match</div>
+        <strong class="{% if count.difference_count %}txt-danger{% endif %}">{{ count.difference_count }}</strong>
+      </div>
+      <div>
+        <div class="label faint">Value of the gap</div>
+        <strong class="{% if count.value_difference < 0 %}txt-danger{% endif %}">
+          {{ currency }} {{ count.value_difference|floatformat:0|intcomma }}
+        </strong>
+      </div>
+    </div>
+    {% if count.note %}<p class="muted" style="margin-top:1rem">{{ count.note }}</p>{% endif %}
+  </div>
+</div>
+
+{% if differences %}
+<div class="card">
+  <div class="card-head">
+    <h2>What did not match</h2>
+    <div class="spacer"></div>
+    <span class="faint">This is the part worth reading.</span>
+  </div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th><th class="num">System said</th><th class="num">Counted</th>
+            <th class="num">Difference</th><th class="num">Value</th><th>What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for line in differences %}
+          <tr class="{% if line.difference < 0 %}row-danger{% else %}row-warn{% endif %}">
+            <td><a href="{% url 'product_detail' line.product.pk %}"><strong>{{ line.product.name }}</strong></a></td>
+            <td class="num muted">{{ line.system_quantity|floatformat:"-2" }}</td>
+            <td class="num"><strong>{{ line.counted_quantity|floatformat:"-2" }}</strong>
+              <span class="faint">{{ line.product.unit }}</span></td>
+            <td class="num"><strong>{{ line.difference|floatformat:"-2" }}</strong></td>
+            <td class="num">{{ line.value_difference|floatformat:0|intcomma }}</td>
+            <td class="muted">
+              {% if line.difference < 0 %}Short on the shelf &mdash; sold without ringing up, taken, or broken.
+              {% else %}More on the shelf than the books knew about.{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+  <div class="msg msg-success">
+    Every product counted matched the system exactly. Nothing needed correcting.
+  </div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h3>Everything counted</h3></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th class="num">System said</th><th class="num">Counted</th><th class="num">Difference</th></tr>
+        </thead>
+        <tbody>
+        {% for line in lines %}
+          <tr>
+            <td>{{ line.product.name }}</td>
+            <td class="num muted">{{ line.system_quantity|floatformat:"-2" }}</td>
+            <td class="num">{{ line.counted_quantity|floatformat:"-2" }} <span class="faint">{{ line.product.unit }}</span></td>
+            <td class="num {% if line.difference < 0 %}txt-danger{% endif %}">
+              {% if line.difference %}{{ line.difference|floatformat:"-2" }}{% else %}&mdash;{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

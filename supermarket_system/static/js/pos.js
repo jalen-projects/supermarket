@@ -17,6 +17,10 @@
   var emptyRow = document.getElementById('empty-row');
   var errorBox = document.getElementById('pos-error');
 
+  // Read the label off the button rather than repeating the wording here, so
+  // renaming it in the template cannot leave a stale label behind after a sale.
+  var CHECKOUT_LABEL = document.getElementById('checkout').innerHTML;
+
   var cart = [];        // {id, name, price, qty, unit, dec}
   var matches = [];
   var selected = -1;
@@ -153,7 +157,9 @@
     if (paid > 0 && total > 0) {
       changeLine.hidden = false;
       var diff = paid - total;
-      changeLine.style.color = diff < 0 ? 'var(--danger)' : 'var(--brand)';
+      // A class, not an inline colour: the box has a green wash behind it and
+      // red text on green is unreadable at a glance.
+      changeLine.className = diff < 0 ? 'change-line short' : 'change-line';
       changeLine.firstChild.textContent = diff < 0 ? 'Short by: ' : 'Change: ';
       setText('t-change', money(Math.abs(diff)));
     } else {
@@ -306,6 +312,24 @@
     document.getElementById(id).addEventListener('input', totals);
   });
 
+  // ---- tender buttons -----------------------------------------------------
+  // "Exact money" fills in the total. A note button adds that note to what has
+  // already been handed over, because a customer paying 15,000 gives a 10 and
+  // a 5 - that is two taps, not mental arithmetic at the counter.
+  Array.prototype.forEach.call(document.querySelectorAll('.tender'), function (btn) {
+    btn.addEventListener('click', function () {
+      var paidBox = document.getElementById('paid');
+      var kind = btn.dataset.tender;
+      if (kind === 'exact') {
+        paidBox.value = Math.round((window._posTotal || 0) * 100) / 100;
+      } else {
+        paidBox.value = (parseFloat(paidBox.value) || 0) + parseFloat(kind);
+      }
+      totals();
+      scan.focus();
+    });
+  });
+
   // ---- checkout -----------------------------------------------------------
   function checkout() {
     if (busy) return;
@@ -321,7 +345,10 @@
     var paid = parseFloat(document.getElementById('paid').value) || 0;
     var method = document.getElementById('method').value;
     if (method !== 'CREDIT' && paid < total) {
-      if (!confirm('The cash received is less than the total. Record it anyway as a part payment?')) {
+      if (!confirm('The customer has given ' + money(paid) + ' but the total is ' +
+                   money(total) + ', short by ' + money(total - paid) + '.\n\n' +
+                   'Press OK to cash out anyway and record the rest as still owed. ' +
+                   'Press Cancel to go back and correct the amount.')) {
         return;
       }
     }
@@ -350,7 +377,7 @@
       .then(function (res) {
         busy = false;
         button.disabled = false;
-        button.textContent = 'Complete sale & print (F9)';
+        button.innerHTML = CHECKOUT_LABEL;
         if (!res.ok || !res.d.ok) {
           showError(res.d.error || 'The sale could not be saved. Nothing was charged.');
           return;
@@ -375,7 +402,7 @@
       .catch(function () {
         busy = false;
         button.disabled = false;
-        button.textContent = 'Complete sale & print (F9)';
+        button.innerHTML = CHECKOUT_LABEL;
         showError('The sale could not be saved. Check that the system is still running, ' +
                   'then try again. Nothing was charged.');
       });

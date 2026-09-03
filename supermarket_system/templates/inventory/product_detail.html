@@ -3,9 +3,21 @@
 {% block heading %}{{ product.name }}{% endblock %}
 {% block topbar %}
   <a href="{% url 'product_adjust' product.pk %}" class="btn">Adjust stock</a>
+  <a href="{% url 'product_delete' product.pk %}" class="btn btn-danger-ghost">Remove</a>
   <a href="{% url 'product_edit' product.pk %}" class="btn btn-primary">Edit</a>
 {% endblock %}
 {% block content %}
+
+{% if not product.is_active %}
+<div class="msg msg-warning">
+  <strong>This product is not for sale.</strong> It does not come up at the till and it is
+  hidden from the product list. Its history is untouched.
+  <form method="post" action="{% url 'product_restore' product.pk %}" style="display:inline">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm" style="margin-left:.6rem">Put it back on sale</button>
+  </form>
+</div>
+{% endif %}
 
 <div class="grid grid-4" style="margin-bottom:1.25rem">
   <div class="stat {% if product.stock_available <= 0 %}alert{% elif product.is_low_stock %}caution{% endif %}">

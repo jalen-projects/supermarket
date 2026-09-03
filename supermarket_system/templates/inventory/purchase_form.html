@@ -7,6 +7,10 @@
   <div class="card">
     <div class="card-head"><h2>Delivery details</h2></div>
     <div class="card-body">
+      <div class="msg msg-info" style="margin-bottom:1rem" data-tour="no-paperwork">
+        <strong>No invoice? No supplier name?</strong> Leave both of them empty and carry on.
+        The system gives every delivery its own number, so the goods are still tracked.
+      </div>
       <div class="form-grid">
         {% include "partials/form_fields.html" %}
       </div>
@@ -25,7 +29,7 @@
         <div class="msg msg-error" style="margin:1rem">{{ formset.non_form_errors }}</div>
       {% endif %}
       <div class="table-wrap">
-        <table id="items">
+        <table id="items" data-tour="delivery-lines">
           <thead>
             <tr>
               <th style="min-width:220px">Product</th>
@@ -55,7 +59,7 @@
   </div>
 
   <div class="btn-row">
-    <button type="submit" name="action" value="receive" class="btn btn-primary btn-lg">
+    <button type="submit" name="action" value="receive" class="btn btn-primary btn-lg" data-tour="receive">
       Receive into stock now
     </button>
     <button type="submit" name="action" value="draft" class="btn">Save as a draft</button>

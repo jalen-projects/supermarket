@@ -17,6 +17,8 @@
   --warn-wash: #fef4e6;
   --danger: #b42318;
   --danger-wash: #fdeceb;
+  --info: #1c4e80;
+  --info-wash: #eef4fb;
   --ok: #0e7c5a;
   --sidebar: #10151c;
   --radius: 10px;
@@ -164,6 +166,23 @@ tfoot td { font-weight: 650; border-top: 2px solid var(--line); background: var(
 .muted { color: var(--ink-soft); }
 .faint { color: var(--ink-faint); font-size: .82rem; }
 .mono { font-family: var(--mono); font-size: .85em; }
+.txt-danger { color: var(--danger); }
+
+/* ---------- stock take counting sheet ---------- */
+/* The counted box is the only thing the owner touches while he is standing at
+   a shelf, so it is the biggest thing on the row. Cost and expiry are there
+   when he needs them and quiet when he does not. */
+.count-table td { padding-top: .45rem; padding-bottom: .45rem; }
+.count-table .counted {
+  width: 120px; text-align: right; font-size: 1.05rem; font-weight: 600;
+  padding: .45rem .55rem; border-color: var(--ink-faint);
+}
+.count-table .counted:focus { border-color: var(--brand); }
+.count-table .cost { width: 110px; text-align: right; padding: .35rem .5rem; }
+.count-table input[type=date] { padding: .35rem .5rem; }
+.count-table .diff { font-weight: 650; font-variant-numeric: tabular-nums; }
+.count-table .diff.short { color: var(--danger); }
+.count-table .diff.over { color: var(--warn); }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -177,6 +196,10 @@ tfoot td { font-weight: 650; border-top: 2px solid var(--line); background: var(
 .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn-danger:hover { filter: brightness(.93); }
+/* Destructive, but sitting in a busy row of forty products - it should be
+   findable without shouting louder than the data next to it. */
+.btn-danger-ghost { color: var(--danger); border-color: var(--line); background: var(--paper); }
+.btn-danger-ghost:hover { background: var(--danger-wash); border-color: #f3c9c5; text-decoration: none; }
 .btn-lg { padding: .75rem 1.4rem; font-size: 1rem; }
 .btn-sm { padding: .3rem .6rem; font-size: .8rem; }
 .btn-block { width: 100%; }
@@ -220,6 +243,9 @@ textarea.input { min-height: 80px; resize: vertical; }
 .msg-success { background: var(--brand-wash); border-color: #b8ddce; color: var(--brand-dark); }
 .msg-error { background: var(--danger-wash); border-color: #f3c9c5; color: var(--danger); }
 .msg-warning { background: var(--warn-wash); border-color: #f0dcb8; color: var(--warn); }
+/* messages.info() carries the tag "info". Without this it rendered as a plain
+   white box indistinguishable from the page. */
+.msg-info, .msg-debug { background: var(--info-wash); border-color: #c3d4e8; color: var(--info); }
 
 .empty { padding: 2.5rem 1rem; text-align: center; color: var(--ink-faint); }
 .empty strong { display: block; color: var(--ink-soft); margin-bottom: .3rem; }
@@ -287,7 +313,107 @@ textarea.input { min-height: 80px; resize: vertical; }
   border-top: 2px solid var(--ink); margin-top: .5rem; padding-top: .6rem;
 }
 .totals .grand .amt { font-size: 1.85rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.change-line { font-size: 1.15rem; font-weight: 650; color: var(--brand); }
+/* The change is the number the cashier reads out loud while a queue waits, so
+   it is the loudest thing on the panel after the total itself. */
+.change-line {
+  font-size: 1.45rem; font-weight: 700; color: var(--brand);
+  margin-top: .7rem; padding: .55rem .8rem; border-radius: 8px;
+  background: var(--brand-wash); font-variant-numeric: tabular-nums;
+}
+
+.change-line.short { color: var(--danger); background: var(--danger-wash); }
+
+/* ---------- guided tour ---------- */
+/* Dim everything, cut a hole around the one thing being talked about, and put
+   the words next to it. The shop owner is following this on a real screen with
+   his own data on it, so the highlighted element must stay readable. */
+.tour-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(16, 21, 28, .55);
+}
+/* When a step highlights an element, the spot's own huge shadow does the
+   dimming and this flat layer must get out of the way - two dims stacked go
+   almost black. JS adds this class whenever the spot is showing. */
+.tour-overlay.tour-overlay-clear { background: none; }
+
+.tour-spot {
+  position: fixed; z-index: 901; border-radius: 10px; pointer-events: none;
+  border: 2px solid var(--brand);
+  /* A giant spread shadow rather than a clip-path: the element underneath
+     keeps its real colours and stays readable, which matters because he is
+     following this on a screen full of his own data. */
+  box-shadow: 0 0 0 9999px rgba(16, 21, 28, .55), 0 0 0 6px rgba(14, 124, 90, .25);
+  transition: top .15s ease, left .15s ease, width .15s ease, height .15s ease;
+}
+
+.tour-bubble {
+  position: fixed; z-index: 902; width: min(400px, calc(100vw - 20px));
+  background: var(--paper); border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgba(16, 21, 28, .28);
+  padding: 1.1rem 1.2rem 1rem;
+}
+.tour-bubble-center {
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(460px, calc(100vw - 20px));
+}
+.tour-bubble .tour-step {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--brand); font-weight: 650; margin-bottom: .35rem;
+}
+.tour-bubble h3 { font-size: 1.05rem; margin-bottom: .45rem; }
+.tour-body { font-size: .875rem; color: var(--ink-soft); line-height: 1.55; }
+.tour-body b { color: var(--ink); }
+.tour-actions { display: flex; align-items: center; gap: .4rem; margin-top: 1rem; }
+.tour-actions .tour-spacer { flex: 1; }
+
+/* The first-sign-in offer. A card in the corner, not a dialog across the
+   screen - somebody who opened the till to serve a customer must be able to
+   ignore it completely. */
+.tour-invite {
+  position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 880;
+  width: min(340px, calc(100vw - 2.2rem));
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(16, 21, 28, .18);
+  padding: 1rem 1.1rem;
+}
+.tour-invite p { margin: .35rem 0 0; font-size: .85rem; color: var(--ink-soft); line-height: 1.5; }
+.tour-invite-actions { display: flex; gap: .4rem; margin-top: .8rem; }
+
+@media print {
+  .tour-overlay, .tour-spot, .tour-bubble, .tour-invite { display: none !important; }
+}
+
+/* ---------- help page ---------- */
+.help-toc { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 1.25rem; }
+.help-toc a {
+  border: 1px solid var(--line); background: var(--paper); border-radius: 999px;
+  padding: .35rem .8rem; font-size: .82rem; color: var(--ink-soft);
+}
+.help-toc a:hover { border-color: var(--brand); color: var(--brand-dark); text-decoration: none; }
+
+.help-steps { margin: 0 0 1rem; padding-left: 1.3rem; max-width: 72ch; }
+.help-steps li { margin-bottom: .45rem; color: var(--ink-soft); }
+.help-steps li strong { color: var(--ink); }
+
+.help-table td { vertical-align: top; padding: .6rem .85rem .6rem 0; }
+.help-table td:first-child { width: 34%; min-width: 200px; }
+
+/* ---------- the address another till has to type ---------- */
+/* Big enough to read from across a counter and to copy onto paper without
+   mistaking a 1 for a 7. */
+.net-address {
+  display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+  background: var(--wash); border: 1px solid var(--line); border-radius: 8px;
+  padding: .7rem .9rem; margin-bottom: .5rem;
+}
+.net-address .mono { font-size: 1.25rem; font-weight: 650; color: var(--ink); }
+.net-address-primary { background: var(--brand-wash); border-color: #b8ddce; }
+
+.tender-row { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+.tender-row .tender { flex: 1 1 auto; min-width: 68px; font-variant-numeric: tabular-nums; }
+.tender-row .tender[data-tender="exact"] {
+  flex-basis: 100%; font-weight: 600; border-color: var(--brand); color: var(--brand-dark);
+}
 
 .quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .5rem; }
 .quick-btn {

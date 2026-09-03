@@ -17,6 +17,13 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.CASHIER)
     phone = models.CharField(max_length=30, blank=True)
 
+    # Whether this person has been through the guided tour. It lives on the
+    # user rather than in the browser on purpose: the shop runs on two
+    # computers, and being offered the tour again on the second one - after he
+    # has already sat through it on the first - reads as the system forgetting
+    # who he is.
+    has_taken_tour = models.BooleanField(default=False)
+
     class Meta:
         ordering = ["first_name", "username"]
 

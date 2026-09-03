@@ -22,7 +22,7 @@
           <tr>
             <td><a href="{% url 'purchase_detail' p.pk %}" class="mono">{{ p.reference }}</a></td>
             <td>{{ p.date|date:"d M Y" }}</td>
-            <td><strong>{{ p.supplier.name }}</strong></td>
+            <td><strong>{{ p.supplier_name }}</strong></td>
             <td class="mono muted">{{ p.invoice_no|default:"-" }}</td>
             <td class="num">{{ p.item_count }}</td>
             <td class="num">{{ currency }} {{ p.total|floatformat:0|intcomma }}</td>

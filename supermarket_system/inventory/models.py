@@ -165,7 +165,15 @@ class Purchase(models.Model):
         RECEIVED = "RECEIVED", "Received"
 
     reference = models.CharField(max_length=30, unique=True, blank=True)
-    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="purchases")
+    # Both of these are optional on purpose. A lot of stock in a Ugandan shop
+    # arrives with no paperwork at all - bought for cash in the market, or
+    # dropped off by a hawker nobody has a name for. Requiring a supplier or an
+    # invoice number would mean the delivery simply never gets recorded, and
+    # then the stock figures are wrong. Better a delivery with "not recorded"
+    # against it than no delivery at all.
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.PROTECT, related_name="purchases",
+        null=True, blank=True)
     invoice_no = models.CharField(max_length=60, blank=True)
     date = models.DateField(default=timezone.localdate)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
@@ -179,7 +187,12 @@ class Purchase(models.Model):
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"{self.reference} - {self.supplier}"
+        return f"{self.reference} - {self.supplier_name}"
+
+    @property
+    def supplier_name(self):
+        """What to show wherever a supplier is expected but none was given."""
+        return str(self.supplier) if self.supplier_id else "Supplier not recorded"
 
     def save(self, *args, **kwargs):
         if not self.reference:
@@ -298,6 +311,83 @@ class StockMovement(models.Model):
 
     def __str__(self):
         return f"{self.get_kind_display()} {self.quantity} {self.product}"
+
+
+class StockCount(models.Model):
+    """A physical count of the shelves - 'stock taking' on the client's list.
+
+    This is how goods that were already in the shop before the system existed
+    get onto the books, and afterwards it is how the owner finds out that the
+    shelf holds 8 bars of soap when the system says 14.
+
+    A count is deliberately scoped to whatever the owner counted in one go -
+    usually one category, one aisle - because a whole supermarket is never
+    counted in a single sitting. Each submission is its own record, so he can
+    do Beverages this morning and Soap after lunch without losing anything.
+    """
+
+    reference = models.CharField(max_length=30, unique=True, blank=True)
+    date = models.DateField(default=timezone.localdate)
+    scope = models.CharField(
+        max_length=120, blank=True,
+        help_text="What was counted, e.g. 'Beverages' or 'the front shelf'.")
+    note = models.TextField(blank=True)
+    counted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="stock_counts")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return self.reference
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            last = StockCount.objects.order_by("-id").first()
+            self.reference = f"COUNT-{(last.id + 1 if last else 1):05d}"
+        super().save(*args, **kwargs)
+
+    # -- the variance report the owner actually reads ---------------------
+    @property
+    def line_count(self):
+        return self.lines.count()
+
+    @property
+    def difference_count(self):
+        return self.lines.exclude(counted_quantity=F("system_quantity")).count()
+
+    @property
+    def value_difference(self):
+        """Money. Negative means the shelf is short of what the books say -
+        that is shrinkage: theft, breakage, or a sale that was never rung up.
+        """
+        return sum((line.value_difference for line in self.lines.all()), Decimal("0"))
+
+
+class StockCountLine(models.Model):
+    count = models.ForeignKey(StockCount, on_delete=models.CASCADE, related_name="lines")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="count_lines")
+    system_quantity = models.DecimalField(
+        max_digits=12, decimal_places=3,
+        help_text="What the system believed was on the shelf at the moment of counting.")
+    counted_quantity = models.DecimalField(
+        max_digits=12, decimal_places=3, help_text="What was actually found there.")
+    buying_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["product__name"]
+
+    def __str__(self):
+        return f"{self.product}: counted {self.counted_quantity}"
+
+    @property
+    def difference(self):
+        return self.counted_quantity - self.system_quantity
+
+    @property
+    def value_difference(self):
+        return (self.difference * self.buying_price).quantize(Decimal("0.01"))
 
 
 def expiring_batches(days=None):

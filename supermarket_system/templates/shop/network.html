@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Other computers - {{ shop.company_name }}{% endblock %}
+{% block heading %}Using the system on more than one computer{% endblock %}
+{% block topbar %}<button type="button" class="btn no-print" onclick="window.print()">Print this page</button>{% endblock %}
+{% block content %}
+
+<div class="msg msg-success">
+  <strong>Yes &mdash; two, three or more computers can use this system at once, and they
+  all share the same data.</strong>
+  It stays completely offline. Nothing goes to the internet; the computers only talk to
+  each other over your own network in the shop.
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>How it works</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      One computer &mdash; the one in the office, or the main till &mdash; is the
+      <strong>server</strong>. It is the only one where the system is installed, and it
+      holds the only copy of your data. Every other computer just opens a web browser and
+      types in an address.
+    </p>
+    <p class="muted">
+      That is the whole design. The other tills install <em>nothing</em>. If a sale is rung
+      up on till 2, the stock drops on till 1 and in the office immediately, because there
+      is only ever one set of books. Two separate copies of the system would be two
+      separate shops that disagree with each other by lunchtime &mdash; this avoids that
+      completely.
+    </p>
+    <ul class="muted">
+      <li>The server must be switched on and running the system before the other tills can
+          use it. If it is off, they see nothing.</li>
+      <li>They must be on the same network &mdash; the same router, whether by cable or wi-fi.</li>
+      <li>No internet connection is needed at any point. The router does not even have to
+          have one.</li>
+      <li>Everyone signs in with their own name, so <strong>Served by</strong> on the receipt
+          and the seller reports stay honest.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>The address to type on the other computer</h2>
+    <div class="spacer"></div>
+    <span class="faint">This computer is called {{ hostname }}</span>
+  </div>
+  <div class="card-body">
+    {% if addresses %}
+      {% if not viewing_from_server %}
+        <div class="msg msg-success">
+          You are reading this <strong>on another computer already</strong> &mdash; you
+          reached it at <span class="mono">{{ this_request_host }}</span>. It is working.
+        </div>
+      {% endif %}
+
+      <p class="muted">
+        On the other computer, open Chrome (or any browser) and type this into the address
+        bar &mdash; not into Google, into the address bar at the very top:
+      </p>
+
+      {% for a in addresses %}
+        <div class="net-address {% if a.primary %}net-address-primary{% endif %}">
+          <span class="mono">http://{{ a.ip }}:{{ a.port }}/</span>
+          {% if a.primary %}<span class="badge badge-ok">try this one first</span>{% endif %}
+        </div>
+      {% endfor %}
+
+      {% if addresses|length > 1 %}
+        <p class="faint">
+          This computer is on more than one network (usually a cable and wi-fi at the same
+          time). Only the one the other till is also on will work &mdash; try them in order.
+        </p>
+      {% endif %}
+
+      <p class="muted" style="margin-top:1rem">
+        When it opens, bookmark it on that computer so nobody has to type it again.
+      </p>
+    {% else %}
+      <div class="msg msg-warning">
+        This computer does not appear to be on any network right now. Connect it to the
+        shop's router, by cable or wi-fi, and reload this page.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>If the other computer cannot open it</h2></div>
+  <div class="card-body">
+    <p class="muted">Work down this list. It is almost always the first two.</p>
+    <ol class="muted">
+      <li>
+        <strong>Is the system actually running on the server?</strong>
+        The black <em>Supermarket Management System</em> window must be open there. If it
+        was closed, double-click <span class="mono">START SUPERMARKET</span> again.
+      </li>
+      <li>
+        <strong>Windows Firewall is blocking it.</strong> This is the usual cause, and it
+        only has to be fixed once. On the server, right-click
+        <span class="mono">ALLOW OTHER TILLS.bat</span> in the system's folder and choose
+        <strong>Run as administrator</strong>. Then try the other computer again.
+      </li>
+      <li>
+        <strong>Are they on the same network?</strong> Both must be on the same router. A
+        computer on a phone hotspot cannot see a computer on the shop's wi-fi.
+      </li>
+      <li>
+        <strong>Was the address typed exactly?</strong> It needs the
+        <span class="mono">http://</span> and the <span class="mono">:{{ port }}</span> at
+        the end. Without the port number it will not find anything.
+      </li>
+      <li>
+        <strong>Did the address change?</strong> Routers hand out addresses and can change
+        them after a power cut. Come back to this page on the server to read the current
+        one. If it keeps changing, ask whoever set up the router to give this computer a
+        fixed address.
+      </li>
+    </ol>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Things worth knowing before you rely on it</h2></div>
+  <div class="card-body">
+    <ul class="muted">
+      <li>
+        <strong>The server holds everything.</strong> The other tills store nothing at all.
+        Back up on the server, and keep taking that backup to a flash disk.
+      </li>
+      <li>
+        <strong>If the server goes off, every till stops.</strong> That is the trade for
+        having one honest set of books. Put the server on the same power protection as the
+        fridges, and it is worth having a small UPS on it.
+      </li>
+      <li>
+        <strong>A receipt printer prints where it is plugged in.</strong> Each till needs
+        its own printer, or its own copy of the printer installed on it.
+      </li>
+      <li>
+        <strong>This is safe for a handful of tills, not fifty.</strong> Three or four
+        computers in one shop is comfortable. A chain of branches is a different system and
+        a different conversation.
+      </li>
+      <li>
+        <strong>Anyone on your network who knows the address can reach the sign-in page.</strong>
+        That is fine inside a shop, but it is one more reason every person needs their own
+        password and cashiers stay cashiers &mdash; a cashier account cannot see your
+        buying prices or your profit.
+      </li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

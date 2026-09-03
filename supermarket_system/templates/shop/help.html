@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}How do I...? - {{ shop.company_name }}{% endblock %}
+{% block heading %}How do I&hellip;?{% endblock %}
+{% block topbar %}
+  <button type="button" class="btn btn-primary no-print" data-tour-start>Show me round the system</button>
+  <button type="button" class="btn no-print" onclick="window.print()">Print this page</button>
+{% endblock %}
+{% block content %}
+
+<p class="muted" style="max-width:70ch">
+  Short answers to the things people ask most. Print this page and leave it by the till.
+</p>
+
+<div class="card no-print" style="max-width:70ch">
+  <div class="card-body">
+    <h3 style="margin-bottom:.3rem">Would you rather be shown?</h3>
+    <p class="muted" style="margin:0 0 .8rem">
+      The guided tour walks you through the real screens &mdash; cashing out, entering a
+      product, counting a shelf, a delivery with no invoice, removing a product, and your
+      second computer. About three minutes. You can stop at any point.
+    </p>
+    <button type="button" class="btn btn-primary" data-tour-start>Start the tour</button>
+  </div>
+</div>
+
+<div class="help-toc no-print">
+  <a href="#cashout">Cash out a customer</a>
+  <a href="#enter">Put a new product into the system</a>
+  <a href="#stocktake">Record goods already in the shop</a>
+  <a href="#noinvoice">Record goods with no invoice</a>
+  <a href="#delete">Delete a product</a>
+  <a href="#mistakes">Fix a mistake</a>
+  {% if user.is_admin %}<a href="#network">Use a second computer</a>{% endif %}
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<div class="card" id="cashout">
+  <div class="card-head"><h2>Cash out a customer (complete the payment)</h2></div>
+  <div class="card-body">
+    <ol class="help-steps">
+      <li>Open <strong>New sale (till)</strong>.</li>
+      <li>Scan each item, or type part of its name and press <kbd>Enter</kbd>. It drops into
+          the list. Scan the same item twice and the quantity becomes 2, or type the
+          quantity straight into the box.</li>
+      <li>Look at the big <strong>TOTAL</strong> on the right. That is what the customer owes.</li>
+      <li>Type what the customer handed you into <strong>Cash received</strong>. If they gave
+          the exact money, tap <strong>Exact money</strong>. If they gave notes, tap the
+          notes &mdash; 10,000 then 5,000 &mdash; and it adds them up for you.</li>
+      <li>The <strong>Change</strong> box turns green and shows what to hand back. If it turns
+          red, they have not given you enough yet.</li>
+      <li>Press the green <strong>CASH OUT &mdash; complete payment</strong> button, or just
+          press <kbd>F9</kbd>.</li>
+    </ol>
+    <p class="muted">
+      That one button does everything at once: it takes the money, prints the receipt, and
+      removes the goods from your stock. There is nothing else to press afterwards.
+    </p>
+    <div class="msg msg-info">
+      <strong>The receipt did not print?</strong> The sale is still saved &mdash; look for
+      the green line under the button and click <em>Open the receipt again</em>. You can
+      also find it any time under <strong>Receipts</strong>.
+    </div>
+    <div class="msg msg-warning">
+      <strong>Paying later, or paying part of it?</strong> Choose the customer's name at the
+      top of the payment box first, set <strong>Paid by</strong> to Credit, and cash out.
+      The balance then shows against that customer, and you can see everyone who owes you
+      under <strong>Customers</strong>. Without picking a name, there is nobody to chase.
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+{% if user.is_admin %}
+<div class="card" id="enter">
+  <div class="card-head"><h2>Put a new product into the system</h2></div>
+  <div class="card-body">
+    <ol class="help-steps">
+      <li><strong>Products</strong> &rarr; <strong>Add a product</strong>.</li>
+      <li>Type the name. Click into the barcode box and scan the item if it has a barcode
+          &mdash; the scanner types it for you. No barcode? Leave it empty; you will find
+          the item by name at the till.</li>
+      <li>Choose the <strong>category</strong> (Beverages, Soap&hellip;) and the
+          <strong>measurement</strong> (piece, kg, crate).</li>
+      <li>Put in the <strong>buying price</strong> (what it cost you) and the
+          <strong>selling price</strong> (what the customer pays). Both are needed, or your
+          profit report cannot be right.</li>
+      <li>Fill in <strong>How many do you have right now</strong> with what is already on the
+          shelf. Add the expiry date if it has one.</li>
+      <li>Press <strong>Save product</strong>. It can be sold immediately.</li>
+    </ol>
+    <p class="muted">
+      Adding many at once? Use <strong>Save and add another</strong> and it keeps the form
+      open in front of you.
+    </p>
+    <div class="msg msg-info">
+      There are three different ways stock goes up, and each is right in its own place:
+      <strong>when adding a new product</strong> (what is on the shelf today),
+      <strong>Purchases</strong> (a delivery that arrived), and
+      <strong>Stock take</strong> (counting shelves you have never entered).
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<div class="card" id="stocktake">
+  <div class="card-head"><h2>Record the goods that are already in the shop</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      This is what a <strong>stock take</strong> is for. It is also how you find out, later
+      on, what has gone missing.
+    </p>
+    <ol class="help-steps">
+      <li><strong>Stock take (count the shelves)</strong> in the menu.</li>
+      <li>Pick <strong>one category</strong> &mdash; one shelf, one aisle. Do not try to
+          count the whole shop in one go; save each shelf as you finish it.</li>
+      <li>Walk the shelf. For each item, type what you actually find into the
+          <strong>Counted</strong> box.</li>
+      <li>The <strong>Difference</strong> column fills in as you type, so a wrong number is
+          obvious while you are still standing there.</li>
+      <li>Skip any row you did not look at. <strong>Empty is not zero</strong> &mdash; leaving
+          it empty means "I did not count this", and nothing about it changes.</li>
+      <li>Name what you counted, then press
+          <strong>Save the count &amp; correct the stock</strong>.</li>
+    </ol>
+    <p class="muted">
+      The system does the arithmetic. Anything extra goes onto the books; anything missing
+      comes off. You then get a sheet showing every item that did not match and what the
+      gap is worth &mdash; that is the page to read.
+    </p>
+    <div class="msg msg-info">
+      <strong>Products not on the system at all yet?</strong> Add them first (see above) and
+      put the quantity in as you add each one. A stock take can only count things it knows
+      the name of.
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<div class="card" id="noinvoice">
+  <div class="card-head"><h2>Record goods that came with no invoice number</h2></div>
+  <div class="card-body">
+    <p class="muted">Leave the box empty. It was never required.</p>
+    <ol class="help-steps">
+      <li><strong>Purchases</strong> &rarr; <strong>Receive a delivery</strong>.</li>
+      <li>Leave <strong>Invoice or delivery note number</strong> empty.</li>
+      <li>Do not know the supplier either? Leave that as
+          <strong>Not recorded / bought for cash</strong>.</li>
+      <li>Add a line for each item: quantity, what you paid for one, and the expiry date if
+          it has one.</li>
+      <li>Press <strong>Receive into stock now</strong>.</li>
+    </ol>
+    <p class="muted">
+      Every delivery gets its own number from the system &mdash; GRN-00001 and so on &mdash;
+      so it is still fully tracked whether or not the supplier gave you paperwork. If the
+      invoice turns up later, open the delivery and type the number in then.
+    </p>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<div class="card" id="delete">
+  <div class="card-head"><h2>Delete a product</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      <strong>Products</strong>, find the item, press <strong>Remove</strong>. The screen
+      then tells you which of two things is about to happen, before you confirm.
+    </p>
+    <ul class="help-steps">
+      <li>
+        <strong>It really is deleted</strong> if it has never been delivered, sold or
+        counted. That is the typing mistake &mdash; the same soap entered twice &mdash; and
+        it goes for good.
+      </li>
+      <li>
+        <strong>It is taken off sale instead</strong> if it has any history. It vanishes from
+        the till and from your product list, but every receipt and every report stays
+        exactly as it was.
+      </li>
+    </ul>
+    <p class="muted">
+      The second one is not the system being stubborn. That product's name is printed on
+      receipts customers are holding and it is inside last month's profit figure. Erasing it
+      would change what those receipts add up to, and then your books could never be
+      trusted again.
+    </p>
+    <p class="muted">
+      Changed your mind? Products &rarr; the <strong>Not for sale</strong> tab &rarr; open it
+      &rarr; <strong>Put it back on sale</strong>.
+    </p>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<div class="card" id="mistakes">
+  <div class="card-head"><h2>Fix a mistake</h2></div>
+  <div class="card-body">
+    <table class="help-table">
+      <tr>
+        <td><strong>Charged the wrong thing, receipt already printed</strong></td>
+        <td class="muted"><strong>Receipts</strong> &rarr; open it &rarr; <strong>Void</strong>.
+          Every item goes back onto the shelf. Then ring the sale up again properly.</td>
+      </tr>
+      <tr>
+        <td><strong>Typed a delivery in wrongly</strong></td>
+        <td class="muted">If it is still a draft, open it and press
+          <strong>Delete draft</strong>. If it was already received, the goods are on the
+          shelf &mdash; correct the quantities with a stock take.</td>
+      </tr>
+      <tr>
+        <td><strong>Goods expired, broke, or were stolen</strong></td>
+        <td class="muted">Open the product &rarr; <strong>Adjust stock</strong>, or use
+          <strong>Write off</strong> on the batch. Say why &mdash; that note is what you read
+          back later.</td>
+      </tr>
+      <tr>
+        <td><strong>The shelf does not match the system</strong></td>
+        <td class="muted">Do a <strong>stock take</strong> of that shelf. It corrects the
+          figures and records the gap at the same time.</td>
+      </tr>
+      <tr>
+        <td><strong>Wrong price on an item</strong></td>
+        <td class="muted"><strong>Products</strong> &rarr; <strong>Edit</strong>. Past
+          receipts keep the price that was actually charged.</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<div class="card" id="network">
+  <div class="card-head"><h2>Use the system on a second computer</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      Yes, and they share the same data. One computer runs the system; the others just open
+      a browser and type in an address. Nothing is installed on them and it is still
+      completely offline.
+    </p>
+    <a href="{% url 'network' %}" class="btn btn-primary">Show me the address to type</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2>Still stuck?</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      Write the question down exactly as it happened &mdash; what you pressed, and what the
+      screen said &mdash; and send it over. That is far quicker to fix than "it is not
+      working".
+    </p>
+  </div>
+</div>
+{% endblock %}
