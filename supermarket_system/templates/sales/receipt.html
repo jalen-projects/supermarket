@@ -31,6 +31,9 @@ td.n, th.n { text-align: right; white-space: nowrap; }
 .item-name { word-break: break-word; }
 .total-row td { font-size: {% if width == "A4" %}18px{% else %}14px{% endif %}; font-weight: 700; padding-top: 4px; }
 .foot { margin-top: 8px; font-size: .9em; }
+    /* Deliberately smaller than the shop's own message. On an 80mm roll
+       every millimetre is paper the shop pays for. */
+    .powered { margin-top: 6px; font-size: .74em; opacity: .75; }
 .void {
   border: 2px solid #000; padding: 4px; text-align: center; font-weight: 700;
   letter-spacing: .1em; margin: 6px 0;
@@ -111,6 +114,7 @@ td.n, th.n { text-align: right; white-space: nowrap; }
     <div>{{ items|length }} item{{ items|length|pluralize }}</div>
     <div>{{ shop.receipt_footer }}</div>
     {% if shop.email %}<div>{{ shop.email }}</div>{% endif %}
+    <div class="powered">Powered by CampusNect Smart Technologies</div>
   </div>
 </div>
 

@@ -82,6 +82,16 @@
         </div>
       {% endif %}
       {% block content %}{% endblock %}
+
+      {# Who built it. Every screen the owner and his cashiers look at all day
+         carries the name quietly, and the link is how a visitor who likes what
+         they see finds us. #}
+      <footer class="app-foot no-print">
+        <span>{{ shop.company_name }}</span>
+        <span>Powered by
+          <a href="https://campusnect.com" target="_blank" rel="noopener">
+            CampusNect Smart Technologies</a></span>
+      </footer>
     </div>
   </div>
 </div>

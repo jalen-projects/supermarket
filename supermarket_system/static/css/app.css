@@ -466,3 +466,19 @@ kbd {
 .capture-status.good { color: var(--good, #1a7f37); }
 .capture-status.warn { color: var(--warn, #9a6700); }
 .capture-status.bad  { color: var(--bad,  #b42318); }
+
+/* Who built it. Quiet on purpose - the shop's own name is what the staff must
+   read, this only needs to be findable. */
+.app-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.25rem;
+  justify-content: space-between;
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line, #e3e8e4);
+  font-size: .82rem;
+  color: var(--muted, #6b7a70);
+}
+.app-foot a { color: inherit; text-decoration: underline; }
+.app-foot a:hover { color: var(--brand, #0d5423); }

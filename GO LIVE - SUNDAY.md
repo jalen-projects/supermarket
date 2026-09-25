@@ -1,8 +1,13 @@
 # GO LIVE — Sunday 27 September 2026
 ## MAQAM FOOD CITY SUPERMARKET
 
-This is the whole visit on one page: what to carry, what to do in what order,
-what to train, and what to sign before leaving.
+> **The printable runbook is the PDF, not this file.**
+> `Desktop\DESIGNS\MAQAM GO-LIVE\MAQAM - Sunday Field Guide (CampusNect).pdf`
+> — fifteen pages, step by step, with the exact commands. Carry that.
+> The commercial documents (invoice, handover) live in that same folder and are
+> deliberately **outside this repository, because this repository is public.**
+
+This file is the same plan in note form, kept with the code.
 
 Read **THE ONE THING THAT CAN STOP THE DAY** first. Everything else is packing.
 
@@ -105,8 +110,8 @@ Put the whole `SUPERMARKET` folder on each, which now includes:
 
 | Document | Status |
 |---|---|
-| **Quotation / Invoice** — 2 copies, both signed | `INVOICE - MAQAM.md`, **fill in the agreed figure before printing** |
-| **Handover & Acceptance form** — 2 copies | `HANDOVER AND ACCEPTANCE.md` — he signs, she signs, each keeps one |
+| **Invoice** — 2 copies | In `MAQAM GO-LIVE`. Figure already on it; fill in the payment details |
+| **Handover & Acceptance form** — 2 copies | In `MAQAM GO-LIVE`. He signs, she signs, each keeps one |
 | **`ANSWERS TO THE CLIENT'S QUESTIONS.md`** | Print it. This is the thing still owed to him from the last round |
 | **A receipt** for the money he pays | Do not leave without giving him one |
 | Her mobile money / bank details | In case he pays part now, part later |

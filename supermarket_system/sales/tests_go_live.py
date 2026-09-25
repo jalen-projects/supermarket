@@ -597,3 +597,39 @@ class BackupTests(ShopTestCase):
                 self.assertIsNone(services.last_backup_age_days())
                 services.backup_database()
                 self.assertEqual(services.last_backup_age_days(), 0)
+
+
+# ---------------------------------------------------------------------------
+# Who built it
+# ---------------------------------------------------------------------------
+class BrandingTests(ShopTestCase):
+    """The credit is the only marketing this system does.
+
+    It sits on a screen the owner and his cashiers look at all day, and on every
+    receipt a customer carries out of the shop. A later template edit dropping it
+    would be invisible - hence these.
+    """
+
+    def test_every_screen_credits_campusnect_and_links_to_the_site(self):
+        self.client.login(username="owner", password="pw12345")
+        for url_name in ["dashboard", "pos", "product_list", "backup"]:
+            page = self.client.get(reverse(url_name)).content.decode()
+            self.assertIn("CampusNect Smart Technologies", page, url_name)
+            self.assertIn("https://campusnect.com", page, url_name)
+
+    def test_the_printed_receipt_carries_the_credit(self):
+        product = self.make_product()
+        self.deliver(product, 5)
+        sale = record_sale(
+            user=self.cashier,
+            lines=[{"product": product, "quantity": Decimal("1"),
+                    "unit_price": Decimal("1500")}],
+            amount_paid=Decimal("2000"))
+
+        self.client.login(username="cashier", password="pw12345")
+        receipt = self.client.get(reverse("receipt", args=[sale.pk])).content.decode()
+
+        self.assertIn("Powered by CampusNect Smart Technologies", receipt)
+        # No clickable link on paper - nobody types a URL off a thermal roll,
+        # and the roll is narrow.
+        self.assertNotIn("https://campusnect.com", receipt)
