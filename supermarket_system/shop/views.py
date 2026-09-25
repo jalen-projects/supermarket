@@ -17,6 +17,7 @@ from django.utils import timezone
 from inventory.models import Product, StockBatch, expired_batches, expiring_batches
 from sales.models import Sale
 
+from . import services
 from .forms import PasswordResetForm, ShopSettingsForm, UserEditForm, UserForm
 from .models import ShopSettings, User
 from .permissions import admin_required
@@ -50,6 +51,15 @@ def dashboard(request):
     }
 
     if request.user.is_admin:
+        # Today's copy, taken the first time the owner opens the system each
+        # day. A backup nobody remembers to press is not a backup.
+        try:
+            services.auto_backup_if_due()
+        except (OSError, sqlite3.Error):
+            # A failed backup must never keep him out of his own till.
+            pass
+        ctx["backup_age_days"] = services.last_backup_age_days()
+
         products = Product.objects.active().with_stock()
         low = [p for p in products if p.stock <= p.effective_reorder_level]
         expired = expired_batches()
@@ -245,37 +255,41 @@ def network(request):
 # ---------------------------------------------------------------------------
 @admin_required
 def backup(request):
-    django_settings.BACKUP_DIR.mkdir(exist_ok=True)
-    backups = sorted(django_settings.BACKUP_DIR.glob("*.sqlite3"), reverse=True)
-    rows = [{"name": b.name, "size_kb": b.stat().st_size // 1024,
-             "when": timezone.datetime.fromtimestamp(b.stat().st_mtime)} for b in backups]
+    """Take a copy now, and get one off this computer onto a flash disk.
 
+    The WAL-safe copy itself lives in shop/services.backup_database - see the
+    comment there before changing anything about how the file is written.
+    """
     if request.method == "POST":
-        stamp = timezone.localtime().strftime("%Y-%m-%d_%H%M%S")
-        target = django_settings.BACKUP_DIR / f"backup_{stamp}.sqlite3"
-
-        # NOT a file copy. The database runs in WAL mode so a second till never
-        # freezes the first, and in WAL mode the newest committed sales may
-        # still be sitting in db.sqlite3-wal rather than in db.sqlite3 itself.
-        # Copying the one file would silently produce a backup missing this
-        # morning's takings - and nobody finds out until they need it.
-        # SQLite's own backup API takes a consistent copy of everything while
-        # the shop keeps trading.
-        source = sqlite3.connect(django_settings.BASE_DIR / "db.sqlite3")
-        try:
-            destination = sqlite3.connect(target)
+        if request.POST.get("to_drive"):
+            drive = request.POST["to_drive"]
             try:
-                source.backup(destination)
-            finally:
-                destination.close()
-        finally:
-            source.close()
-
-        messages.success(request, f"Backup saved as {target.name}. Copy it to a flash disk today.")
+                target = services.copy_backup_to(drive)
+            except (OSError, FileNotFoundError) as exc:
+                messages.error(
+                    request,
+                    f"Could not write to {drive}. Is the flash disk still plugged in? ({exc})")
+            else:
+                messages.success(
+                    request,
+                    f"Copied to {target}. That copy is now safe even if this computer is not.")
+        else:
+            target = services.backup_database(reason="manual")
+            messages.success(
+                request,
+                f"Backup saved as {target.name}. Now copy it to a flash disk.")
         return redirect("backup")
 
-    return render(request, "shop/backup.html", {"backups": rows,
-                                                "folder": django_settings.BACKUP_DIR})
+    rows = [{"name": b.name, "size_kb": b.stat().st_size // 1024,
+             "when": timezone.datetime.fromtimestamp(b.stat().st_mtime)}
+            for b in services.list_backups()]
+
+    return render(request, "shop/backup.html", {
+        "backups": rows,
+        "folder": django_settings.BACKUP_DIR,
+        "drives": services.removable_drives(),
+        "age_days": services.last_backup_age_days(),
+    })
 
 
 @admin_required

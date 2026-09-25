@@ -27,6 +27,9 @@
   <a href="#cashout">Cash out a customer</a>
   <a href="#enter">Put a new product into the system</a>
   <a href="#stocktake">Record goods already in the shop</a>
+  {% if user.is_admin %}<a href="#capture">Get the whole shop onto the system</a>{% endif %}
+  <a href="#cashup">Hand over the drawer (cash up)</a>
+  {% if user.is_admin %}<a href="#backup">Keep a copy of everything</a>{% endif %}
   <a href="#noinvoice">Record goods with no invoice</a>
   <a href="#delete">Delete a product</a>
   <a href="#mistakes">Fix a mistake</a>
@@ -250,4 +253,102 @@
     </p>
   </div>
 </div>
+
+<!-- ------------------------------------------------------------------ -->
+{% if user.is_admin %}
+<div class="card" id="capture">
+  <div class="card-head"><h2>Get the whole shop onto the system</h2></div>
+  <div class="card-body">
+    <p>Nothing can be sold until it is in the system. There are two ways to get it in,
+       and you will probably use both.</p>
+
+    <h3>Walking the shelves with the scanner</h3>
+    <ol class="help-steps">
+      <li>Open <strong>Stock capture (scan shelves)</strong> under Stock.</li>
+      <li>Pick up an item and <strong>scan it</strong>.</li>
+      <li>Type the name, what you pay for it, what you sell it for, and how many are
+          on the shelf. Press <kbd>Enter</kbd> after each box.</li>
+      <li>After the last box it saves, and the cursor jumps back ready for the next item.
+          You never need the mouse.</li>
+    </ol>
+    <p class="muted">
+      Lost the cursor? Press <kbd>F2</kbd> and it goes back to the barcode box.
+      The category stays where you left it, so a whole shelf goes in quickly.
+      Scanning something you already captured just adds to its quantity.
+    </p>
+
+    <h3>From a list in Excel</h3>
+    <ol class="help-steps">
+      <li>Open <strong>Products</strong> and press <strong>Import a list</strong>.</li>
+      <li>Download the template and paste your list into it, then save it as CSV.</li>
+      <li>Upload it. <strong>You will see exactly what it is going to do before anything
+          is saved</strong> &mdash; read that page, then confirm.</li>
+    </ol>
+    <div class="msg msg-info">
+      <strong>Do it a bit at a time.</strong> Start with the fifty things you sell most, so
+      you can open and trade. Then do a shelf each evening. Trying to capture a whole
+      supermarket in one sitting never finishes.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ------------------------------------------------------------------ -->
+<div class="card" id="cashup">
+  <div class="card-head"><h2>Hand over the drawer (cash up)</h2></div>
+  <div class="card-body">
+    <p>At the end of your shift, before you hand the money over:</p>
+    <ol class="help-steps">
+      <li>Open <strong>Cash up (hand over)</strong>.</li>
+      <li><strong>Count everything in the drawer</strong> &mdash; every note and every coin,
+          including the change money you started the day with. Do not take anything out
+          and do not subtract anything.</li>
+      <li>Type the total into the box and press <strong>Hand over the drawer</strong>.</li>
+      <li>Print the sheet and hand it over together with the money.</li>
+    </ol>
+    <p class="muted">
+      If you took money out of the drawer during the shift &mdash; paying a boda for a
+      delivery, for instance &mdash; write it in the note box. That is what it is for.
+    </p>
+    <div class="msg msg-info">
+      Money paid by <strong>mobile money</strong> or taken on <strong>credit</strong> is not
+      expected in the drawer, and the system knows that. You are only ever answerable for
+      the cash.
+    </div>
+    {% if user.is_admin %}
+    <p class="muted">
+      As the owner, <strong>Cash-ups &amp; shortages</strong> shows you every drawer and what
+      was short or over. One bad day is a mistake. The same name short again and again is not.
+      Watch the voided-sales count too &mdash; ringing up a sale, taking the cash and then
+      voiding it is the oldest trick there is.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+{% if user.is_admin %}
+<div class="card" id="backup">
+  <div class="card-head"><h2>Keep a copy of everything</h2></div>
+  <div class="card-body">
+    <p>
+      Everything this shop has sold sits in one file on one computer. If that computer is
+      stolen or its disk dies, it all goes with it unless there is a copy somewhere else.
+    </p>
+    <ol class="help-steps">
+      <li>The system already takes <strong>one copy a day by itself</strong>, on this computer.
+          That protects you from a mistake &mdash; not from a theft or a fire.</li>
+      <li>At the end of every trading day, plug in the flash disk, open
+          <strong>Backup</strong>, and press <strong>Copy the newest backup there</strong>.</li>
+      <li><strong>Take the flash disk home with you.</strong> A backup that sleeps on the
+          shop counter is not a backup.</li>
+    </ol>
+    <p class="muted">
+      There is also a <strong>BACKUP NOW</strong> shortcut on the desktop if you would rather
+      not open the system.
+    </p>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}

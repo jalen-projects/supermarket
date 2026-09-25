@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Import the product list{% endblock %}
+{% block content %}
+
+{% if not plans %}
+<div class="card">
+  <div class="card-head"><h2>Bring the shop's existing list in from a spreadsheet</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      This is for the first day, when everything the shop already sells has to get
+      onto the system. Instead of typing every product, put the list in a spreadsheet
+      and upload it here. Nothing is saved until you have seen exactly what will happen.
+    </p>
+
+    <ol class="muted">
+      <li>Download the template and paste the shop's list into it, or use a list you already have.</li>
+      <li>In Excel choose <strong>File &rarr; Save As &rarr; CSV (Comma delimited)</strong>.</li>
+      <li>Upload it here and read the check report before committing.</li>
+    </ol>
+
+    <p><a href="{% url 'product_import_template' %}" class="btn">Download the template</a></p>
+
+    <hr>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="field">
+        <label for="file">The spreadsheet (CSV)</label>
+        <input type="file" name="file" id="file" class="input" accept=".csv,text/csv" required>
+      </div>
+      <div class="field">
+        <label>
+          <input type="checkbox" name="add_stock_to_existing" value="1">
+          Also add the quantities for products that are <strong>already</strong> in the system
+        </label>
+        <p class="muted" style="margin-top:.25rem">
+          Leave this OFF unless you know what you are doing. It is off by default so that
+          importing the same file twice by mistake cannot double the shop's stock.
+        </p>
+      </div>
+      <button type="submit" class="btn btn-primary">Check the file</button>
+      <a href="{% url 'product_list' %}" class="btn">Cancel</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>What the columns should say</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Needed?</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Name</strong></td><td>Yes</td><td>Also accepted: Product, Item, Description</td></tr>
+          <tr><td>Barcode</td><td>No</td><td>Leave blank for loose goods sold by weight</td></tr>
+          <tr><td>Category</td><td>No</td><td>Created automatically if it does not exist. Blank becomes "General"</td></tr>
+          <tr><td>Unit</td><td>No</td><td>Piece, Kg, Litre, Crate... Blank becomes "Piece"</td></tr>
+          <tr><td>Buying price</td><td>No</td><td>What the shop pays. Needed for profit reports</td></tr>
+          <tr><td>Selling price</td><td>Strongly</td><td>Without it the product is created at 0</td></tr>
+          <tr><td>Quantity</td><td>No</td><td>What is on the shelf now. Becomes opening stock</td></tr>
+          <tr><td>Expiry</td><td>No</td><td>Write it as 2027-04-30 or 30/04/2027</td></tr>
+          <tr><td>Reorder level</td><td>No</td><td>When to warn that it is running low</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top:.75rem">
+      Prices may be written as <span class="mono">12,500</span> or <span class="mono">UGX 12500</span> - both are read correctly.
+    </p>
+  </div>
+</div>
+
+{% else %}
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat good">
+    <div class="label">Ready to import</div>
+    <div class="value">{{ good|length|intcomma }}</div>
+    <div class="note">{{ creating|length }} new, {{ updating|length }} already known</div>
+  </div>
+  <div class="stat {% if bad %}bad{% endif %}">
+    <div class="label">Cannot be imported</div>
+    <div class="value">{{ bad|length|intcomma }}</div>
+    <div class="note">{% if bad %}These rows will be left out{% else %}Nothing wrong{% endif %}</div>
+  </div>
+  <div class="stat {% if warned %}warn{% endif %}">
+    <div class="label">Worth a look</div>
+    <div class="value">{{ warned|length|intcomma }}</div>
+    <div class="note">Will import, but check them</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Nothing has been saved yet</h2></div>
+  <div class="card-body">
+    <p>
+      Read <strong>{{ filename }}</strong> and found <strong>{{ total|intcomma }}</strong> row{{ total|pluralize }}.
+      Columns recognised: <span class="mono">{{ columns|join:", " }}</span>.
+    </p>
+    {% if bad %}
+      <p class="muted">The {{ bad|length }} row{{ bad|pluralize }} with errors will be skipped -
+        everything else still goes in. Fix them in the spreadsheet and import that file again afterwards.</p>
+    {% endif %}
+    <form method="post" action="{% url 'product_import_confirm' %}">
+      {% csrf_token %}
+      <input type="hidden" name="token" value="{{ token }}">
+      {% if add_stock %}<input type="hidden" name="add_stock_to_existing" value="1">{% endif %}
+      <button type="submit" class="btn btn-primary" {% if not good %}disabled{% endif %}>
+        Yes - import {{ good|length|intcomma }} product{{ good|length|pluralize }}
+      </button>
+      <a href="{% url 'product_import' %}" class="btn">Start again</a>
+    </form>
+  </div>
+</div>
+
+{% if bad %}
+<div class="card">
+  <div class="card-head"><h2>Rows that cannot be imported</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Line</th><th>Product</th><th>What is wrong</th></tr></thead>
+        <tbody>
+        {% for p in bad %}
+          <tr>
+            <td class="mono">{{ p.row }}</td>
+            <td>{{ p.name|default:"(no name)" }}</td>
+            <td class="bad">{{ p.errors|join:"; " }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2>Everything that will be imported</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Line</th><th>Product</th><th>Category</th><th class="num">Buying</th>
+          <th class="num">Selling</th><th class="num">Qty</th><th>Action</th><th>Note</th>
+        </tr></thead>
+        <tbody>
+        {% for p in good %}
+          <tr>
+            <td class="mono">{{ p.row }}</td>
+            <td>{{ p.name }}</td>
+            <td class="muted">{{ p.data.category }}</td>
+            <td class="num">{{ p.data.buying_price|default_if_none:"-"|floatformat:0|intcomma }}</td>
+            <td class="num">{{ p.data.selling_price|default_if_none:"-"|floatformat:0|intcomma }}</td>
+            <td class="num">{{ p.data.quantity|default_if_none:"-"|floatformat:"-3" }}</td>
+            <td>{% if p.action == "create" %}<span class="pill good">new</span>{% else %}<span class="pill">update</span>{% endif %}</td>
+            <td class="muted">{{ p.warnings|join:"; " }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

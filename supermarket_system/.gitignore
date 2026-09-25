@@ -9,5 +9,10 @@ db.sqlite3-shm
 staticfiles/
 media/
 backups/
+# Spreadsheets uploaded while importing a product list.
+imports/
 __pycache__/
 *.pyc
+
+# Stray zero-byte file created by a mistyped shell redirect.
+file

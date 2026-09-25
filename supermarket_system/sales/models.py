@@ -64,6 +64,14 @@ class Sale(models.Model):
         related_name="voided_sales")
     void_reason = models.CharField(max_length=200, blank=True)
 
+    # Which cashier's drawer this sale's money belongs in. Attached at the
+    # moment of sale rather than worked out afterwards from the clock: two
+    # cashiers swapping over mid-minute, or a till left signed in overnight,
+    # both make a time-window guess wrong, and a cash-up that is wrong is
+    # worse than no cash-up because someone gets accused over it.
+    shift = models.ForeignKey(
+        "Shift", on_delete=models.PROTECT, null=True, blank=True)
+
     note = models.CharField(max_length=200, blank=True)
 
     class Meta:
@@ -202,3 +210,136 @@ class InsufficientStock(Exception):
         super().__init__(
             f"Only {available} {product.unit} of {product.name} available "
             f"(you asked for {requested}).")
+
+
+class Shift(models.Model):
+    """One cashier's spell at a till: from the moment they start selling until
+    they count the money in the drawer and hand it over.
+
+    This is the control that protects the owner's cash. Without it the system
+    can say "UGX 840,000 was sold today" but nobody can say whether UGX 840,000
+    was actually handed over, because there is nothing to compare the takings
+    against. A shift records what the drawer started with, what the system
+    believes was taken, and what the cashier physically counted - and the
+    difference between the last two is the number the owner reads.
+
+    A shift opens by itself on the cashier's first sale. Asking a busy cashier
+    to remember to "open a shift" before serving means that on the day it is
+    forgotten the sales belong to nothing and the control quietly stops
+    working. Opening it automatically means it can never not happen.
+    """
+
+    class Status(models.TextChoices):
+        OPEN = "OPEN", "Open"
+        CLOSED = "CLOSED", "Closed / handed over"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="shifts")
+    opened_at = models.DateTimeField(default=timezone.now, db_index=True)
+    opening_float = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="The change money already in the drawer when the shift started.")
+
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="shifts_closed")
+    counted_cash = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="The cash actually counted out of the drawer at handover.")
+    note = models.CharField(max_length=200, blank=True)
+
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+
+    class Meta:
+        ordering = ["-opened_at", "-id"]
+        # A cashier may only have one drawer open at a time. Two open shifts
+        # would split their sales between them and neither would reconcile.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"], condition=models.Q(status="OPEN"),
+                name="one_open_shift_per_user"),
+        ]
+
+    def __str__(self):
+        return f"{self.user} from {timezone.localtime(self.opened_at):%d %b %H:%M}"
+
+    # -- what the system believes ----------------------------------------
+    @property
+    def sales(self):
+        return self.sale_set.filter(status=Sale.Status.COMPLETED)
+
+    def _taken(self, method):
+        total = self.sales.filter(payment_method=method).aggregate(
+            t=models.Sum("total"))["t"]
+        return total or Decimal("0")
+
+    @property
+    def cash_sales(self):
+        return self._taken(Sale.Payment.CASH)
+
+    @property
+    def mobile_sales(self):
+        return self._taken(Sale.Payment.MOBILE)
+
+    @property
+    def card_sales(self):
+        return self._taken(Sale.Payment.CARD)
+
+    @property
+    def credit_sales(self):
+        """Sold but not paid for. It is deliberately NOT expected in the
+        drawer - chasing a cashier for money a customer took on credit is how
+        an honest cashier is wrongly accused."""
+        return self._taken(Sale.Payment.CREDIT)
+
+    @property
+    def total_sales(self):
+        return self.sales.aggregate(t=models.Sum("total"))["t"] or Decimal("0")
+
+    @property
+    def sale_count(self):
+        return self.sales.count()
+
+    @property
+    def voided_count(self):
+        """Voided sales are shown to the owner on purpose. Ringing a sale up,
+        taking the money and then voiding it is the oldest way to empty a till
+        without the books noticing."""
+        return self.sale_set.filter(status=Sale.Status.VOIDED).count()
+
+    @property
+    def expected_cash(self):
+        """What should be in the drawer: the float it started with plus every
+        sale that was paid for in cash. Mobile money and card never reach the
+        drawer, and credit has not been paid at all."""
+        return (self.opening_float + self.cash_sales).quantize(Decimal("0.01"))
+
+    # -- what was actually there ------------------------------------------
+    @property
+    def is_open(self):
+        return self.status == self.Status.OPEN
+
+    @property
+    def variance(self):
+        """Counted minus expected. Negative is money missing; positive means
+        a customer was short-changed or a sale was never rung up."""
+        if self.counted_cash is None:
+            return None
+        return (self.counted_cash - self.expected_cash).quantize(Decimal("0.01"))
+
+    @property
+    def is_short(self):
+        v = self.variance
+        return v is not None and v < 0
+
+    @property
+    def is_balanced(self):
+        return self.variance == Decimal("0.00")
+
+    @property
+    def duration(self):
+        end = self.closed_at or timezone.now()
+        minutes = int((end - self.opened_at).total_seconds() // 60)
+        hours, mins = divmod(minutes, 60)
+        return f"{hours}h {mins:02d}m"

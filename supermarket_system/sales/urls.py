@@ -8,6 +8,9 @@ urlpatterns = [
 
     path("list/", views.sale_list, name="sale_list"),
     path("day/", views.day_summary, name="day_summary"),
+    path("cashup/", views.cash_up, name="cash_up"),
+    path("shifts/", views.shift_list, name="shift_list"),
+    path("shifts/<int:pk>/", views.shift_detail, name="shift_detail"),
     path("<int:pk>/", views.sale_detail, name="sale_detail"),
     path("<int:pk>/receipt/", views.receipt, name="receipt"),
     path("<int:pk>/void/", views.sale_void, name="sale_void"),

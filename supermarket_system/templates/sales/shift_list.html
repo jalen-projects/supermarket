@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Cash-ups (who balanced, who did not){% endblock %}
+{% block content %}
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat bad">
+    <div class="label">Short on this page</div>
+    <div class="value">{{ currency }} {{ short_total|floatformat:0|intcomma }}</div>
+    <div class="note">Cash the drawers could not account for</div>
+  </div>
+  <div class="stat warn">
+    <div class="label">Over on this page</div>
+    <div class="value">+{{ currency }} {{ over_total|floatformat:0|intcomma }}</div>
+    <div class="note">Usually a sale that was never rung up</div>
+  </div>
+  <div class="stat">
+    <div class="label">What to watch</div>
+    <div class="value" style="font-size:1.05rem">The same name, again and again</div>
+    <div class="note">One bad day is a mistake. A pattern is not.</div>
+  </div>
+</div>
+
+<form method="get" class="toolbar no-print">
+  <div class="field">
+    <label for="user">Cashier</label>
+    <select name="user" id="user" class="input" onchange="this.form.submit()">
+      <option value="">Everyone</option>
+      {% for c in cashiers %}
+        <option value="{{ c.pk }}" {% if user_filter == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.display_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="state">Show</label>
+    <select name="state" id="state" class="input" onchange="this.form.submit()">
+      <option value="">All drawers</option>
+      <option value="OPEN" {% if state == "OPEN" %}selected{% endif %}>Still open</option>
+      <option value="CLOSED" {% if state == "CLOSED" %}selected{% endif %}>Handed over</option>
+    </select>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Cashier</th><th>Opened</th><th>For</th><th class="num">Sold</th>
+          <th class="num">Expected cash</th><th class="num">Counted</th><th class="num">Difference</th>
+        </tr></thead>
+        <tbody>
+        {% for s in shifts %}
+          <tr>
+            <td><a href="{% url 'shift_detail' s.pk %}">{{ s.user.display_name }}</a></td>
+            <td>{{ s.opened_at|date:"d M, H:i" }}</td>
+            <td class="muted">{{ s.duration }}</td>
+            <td class="num">{{ s.total_sales|floatformat:0|intcomma }}</td>
+            <td class="num">{{ s.expected_cash|floatformat:0|intcomma }}</td>
+            <td class="num">{% if s.is_open %}<span class="muted">open</span>{% else %}{{ s.counted_cash|floatformat:0|intcomma }}{% endif %}</td>
+            <td class="num">
+              {% if s.is_open %}<span class="muted">-</span>
+              {% elif s.is_balanced %}<span class="pill good">balanced</span>
+              {% elif s.is_short %}<strong class="bad">{{ s.variance|floatformat:0|intcomma }}</strong>
+              {% else %}<strong class="warn">+{{ s.variance|floatformat:0|intcomma }}</strong>{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7"><div class="empty">
+            <strong>No cash-ups yet</strong>
+            <p class="muted">A drawer opens by itself the first time a cashier sells something.</p>
+          </div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% include "partials/pager.html" %}
+{% endblock %}

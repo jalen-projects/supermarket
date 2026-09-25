@@ -18,3 +18,15 @@ staticfiles/
 .idea/
 Thumbs.db
 desktop.ini
+
+# The Python installer carried to the shop on the flash disk. It is 26MB of
+# somebody else's binary and it is downloaded, not authored - it belongs on the
+# flash disk, not in the history. Get it from python.org: the version must match
+# the wheels in supermarket_system/wheelhouse (3.12, 64-bit).
+PYTHON INSTALLER/
+
+# Spreadsheets uploaded while importing a product list.
+imports/
+
+# Local tooling cache, not part of the shop's system.
+.impeccable/

@@ -3,7 +3,9 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
@@ -14,9 +16,9 @@ from inventory.models import Category, Product
 from shop.models import ShopSettings
 from shop.permissions import admin_required
 
-from .forms import CustomerForm
-from .models import Customer, InsufficientStock, Sale
-from .services import record_sale
+from .forms import CashUpForm, CustomerForm, OpenDrawerForm
+from .models import Customer, InsufficientStock, Sale, Shift
+from .services import close_shift, current_shift, open_shift, record_sale
 
 
 @login_required
@@ -243,4 +245,84 @@ def day_summary(request):
         "day": day, "sales": sales.select_related("served_by", "customer"),
         "total": sales.aggregate(t=Sum("total"))["t"] or Decimal("0"),
         "count": sales.count(), "by_method": by_method,
+    })
+
+
+@login_required
+def cash_up(request):
+    """The cashier's own drawer: open it with a float, or count it and hand over.
+
+    A cashier sees only their own drawer and only their own figures. The
+    expected total is deliberately hidden until after they have submitted
+    their count - see CashUpForm.
+    """
+    shift = current_shift(request.user)
+
+    if request.method == "POST" and "open" in request.POST:
+        form = OpenDrawerForm(request.POST)
+        if form.is_valid():
+            open_shift(user=request.user,
+                       opening_float=form.cleaned_data["opening_float"])
+            messages.success(request, "Change money recorded. You can start selling.")
+            return redirect("cash_up")
+        cashup_form = CashUpForm()
+    elif request.method == "POST":
+        cashup_form = CashUpForm(request.POST)
+        form = OpenDrawerForm(initial={"opening_float": shift.opening_float})
+        if cashup_form.is_valid():
+            try:
+                closed = close_shift(
+                    shift=shift,
+                    counted_cash=cashup_form.cleaned_data["counted_cash"],
+                    closed_by=request.user,
+                    note=cashup_form.cleaned_data["note"])
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect("cash_up")
+            messages.success(request, "Drawer handed over. Show this page to the manager.")
+            return redirect("shift_detail", pk=closed.pk)
+    else:
+        form = OpenDrawerForm(initial={"opening_float": shift.opening_float})
+        cashup_form = CashUpForm()
+
+    return render(request, "sales/cash_up.html", {
+        "shift": shift, "form": form, "cashup_form": cashup_form,
+        # A cashier must not see what the drawer *should* hold before counting.
+        "show_expected": request.user.is_admin,
+    })
+
+
+@admin_required
+def shift_list(request):
+    """Every drawer, with what was short or over. The owner's theft report."""
+    shifts = Shift.objects.select_related("user", "closed_by")
+
+    who = request.GET.get("user") or ""
+    if who:
+        shifts = shifts.filter(user_id=who)
+    state = request.GET.get("state") or ""
+    if state in (Shift.Status.OPEN, Shift.Status.CLOSED):
+        shifts = shifts.filter(status=state)
+
+    page = Paginator(shifts, 40).get_page(request.GET.get("page"))
+    closed = [s for s in page if s.variance is not None]
+    return render(request, "sales/shift_list.html", {
+        "page_obj": page, "shifts": page,
+        "cashiers": get_user_model().objects.all(),
+        "user_filter": who, "state": state,
+        "short_total": sum((s.variance for s in closed if s.variance < 0), Decimal("0")),
+        "over_total": sum((s.variance for s in closed if s.variance > 0), Decimal("0")),
+    })
+
+
+@login_required
+def shift_detail(request, pk):
+    """One drawer in full - the sheet a cashier hands over with the money."""
+    shift = get_object_or_404(Shift.objects.select_related("user", "closed_by"), pk=pk)
+    if not request.user.is_admin and shift.user_id != request.user.id:
+        raise PermissionDenied("You can only open your own cash-up.")
+    return render(request, "sales/shift_detail.html", {
+        "shift": shift,
+        "sales": shift.sale_set.select_related("customer").order_by("created_at"),
+        "show_expected": True,
     })

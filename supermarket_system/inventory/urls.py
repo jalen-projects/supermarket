@@ -1,11 +1,17 @@
 from django.urls import path
 
-from . import views
+from . import capture_views, import_views, views
 
 urlpatterns = [
     # Products
     path("products/", views.product_list, name="product_list"),
     path("products/new/", views.product_create, name="product_create"),
+    path("products/import/", import_views.product_import, name="product_import"),
+    path("products/import/confirm/", import_views.product_import_confirm, name="product_import_confirm"),
+    path("products/import/template/", import_views.product_import_template, name="product_import_template"),
+    path("capture/", capture_views.capture, name="capture"),
+    path("capture/lookup/", capture_views.capture_lookup, name="capture_lookup"),
+    path("capture/save/", capture_views.capture_save, name="capture_save"),
     path("products/<int:pk>/", views.product_detail, name="product_detail"),
     path("products/<int:pk>/edit/", views.product_edit, name="product_edit"),
     path("products/<int:pk>/delete/", views.product_delete, name="product_delete"),

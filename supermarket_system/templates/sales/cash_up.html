@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Cash up (hand over the drawer){% endblock %}
+{% block content %}
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat">
+    <div class="label">Drawer opened</div>
+    <div class="value" style="font-size:1.05rem">{{ shift.opened_at|date:"D d M, H:i" }}</div>
+    <div class="note">{{ shift.duration }} so far</div>
+  </div>
+  <div class="stat">
+    <div class="label">Receipts this shift</div>
+    <div class="value">{{ shift.sale_count }}</div>
+    <div class="note">{% if shift.voided_count %}{{ shift.voided_count }} voided{% else %}none voided{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Change money you started with</div>
+    <div class="value">{{ currency }} {{ shift.opening_float|floatformat:0|intcomma }}</div>
+    <div class="note">{{ shift.user.display_name }}</div>
+  </div>
+</div>
+
+{% if shift.opening_float == 0 %}
+<div class="card">
+  <div class="card-head"><h2>Change money in the drawer</h2></div>
+  <div class="card-body">
+    <p class="muted">If the manager gave you float money to make change with, record it here
+      before you start selling. It is counted back at the end, so it is not treated as takings.</p>
+    <form method="post">
+      {% csrf_token %}
+      {% include "partials/form_fields.html" with form=form %}
+      <button type="submit" name="open" value="1" class="btn">Record change money</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2>Count the drawer</h2></div>
+  <div class="card-body">
+    <p class="muted">
+      Count every note and coin in the drawer, including the change money you started with.
+      Do not subtract anything. Type the total below.
+    </p>
+
+    {% if show_expected %}
+      <div class="grid grid-3" style="margin:1rem 0">
+        <div class="stat"><div class="label">Cash sales</div>
+          <div class="value">{{ currency }} {{ shift.cash_sales|floatformat:0|intcomma }}</div></div>
+        <div class="stat"><div class="label">Expected in drawer</div>
+          <div class="value">{{ currency }} {{ shift.expected_cash|floatformat:0|intcomma }}</div>
+          <div class="note">float + cash sales</div></div>
+        <div class="stat"><div class="label">Not in the drawer</div>
+          <div class="value" style="font-size:1.05rem">
+            Mobile {{ shift.mobile_sales|floatformat:0|intcomma }} /
+            Credit {{ shift.credit_sales|floatformat:0|intcomma }}</div></div>
+      </div>
+    {% else %}
+      <p class="muted"><em>The system will compare your count with its own figure once you submit.</em></p>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      {% include "partials/form_fields.html" with form=cashup_form %}
+      <button type="submit" class="btn btn-primary">Hand over the drawer</button>
+      <a href="{% url 'day_summary' %}" class="btn">Not yet</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

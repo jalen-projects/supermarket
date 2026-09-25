@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block heading %}Cash-up sheet{% endblock %}
+{% block topbar %}<button onclick="window.print()" class="btn btn-primary no-print">Print this sheet</button>{% endblock %}
+{% block content %}
+
+<div class="print-only" style="margin-bottom:1rem">
+  <h2>{{ shop.company_name }} - cash-up sheet</h2>
+  <div>Printed {% now "d M Y, H:i" %}</div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat">
+    <div class="label">Cashier</div>
+    <div class="value" style="font-size:1.05rem">{{ shift.user.display_name }}</div>
+    <div class="note">{{ shift.opened_at|date:"D d M Y, H:i" }}{% if shift.closed_at %} to {{ shift.closed_at|date:"H:i" }}{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Total sold</div>
+    <div class="value">{{ currency }} {{ shift.total_sales|floatformat:0|intcomma }}</div>
+    <div class="note">{{ shift.sale_count }} receipts over {{ shift.duration }}</div>
+  </div>
+  {% if shift.is_open %}
+    <div class="stat"><div class="label">Status</div>
+      <div class="value" style="font-size:1.05rem">Still open</div>
+      <div class="note">Not yet handed over</div></div>
+  {% elif shift.is_balanced %}
+    <div class="stat good"><div class="label">Result</div>
+      <div class="value" style="font-size:1.05rem">Balanced</div>
+      <div class="note">The drawer agreed exactly</div></div>
+  {% elif shift.is_short %}
+    <div class="stat bad"><div class="label">SHORT</div>
+      <div class="value">{{ currency }} {{ shift.variance|floatformat:0|intcomma }}</div>
+      <div class="note">Money missing from the drawer</div></div>
+  {% else %}
+    <div class="stat warn"><div class="label">OVER</div>
+      <div class="value">+{{ currency }} {{ shift.variance|floatformat:0|intcomma }}</div>
+      <div class="note">More cash than the sales explain</div></div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>The reconciliation</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr><td>Change money at the start (float)</td>
+              <td class="num">{{ shift.opening_float|floatformat:0|intcomma }}</td></tr>
+          <tr><td>Cash sales</td>
+              <td class="num">{{ shift.cash_sales|floatformat:0|intcomma }}</td></tr>
+          <tr><th>Expected in the drawer</th>
+              <th class="num">{{ currency }} {{ shift.expected_cash|floatformat:0|intcomma }}</th></tr>
+          <tr><td>Counted by the cashier</td>
+              <td class="num">{% if shift.is_open %}<span class="muted">not yet counted</span>{% else %}{{ currency }} {{ shift.counted_cash|floatformat:0|intcomma }}{% endif %}</td></tr>
+          {% if not shift.is_open %}
+          <tr><th>Difference{% if shift.is_short %} (short){% elif not shift.is_balanced %} (over){% endif %}</th>
+              <th class="num">{{ currency }} {{ shift.variance|floatformat:0|intcomma }}</th></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted" style="margin-top:1rem">
+      Mobile money ({{ currency }} {{ shift.mobile_sales|floatformat:0|intcomma }}),
+      card ({{ currency }} {{ shift.card_sales|floatformat:0|intcomma }}) and
+      credit ({{ currency }} {{ shift.credit_sales|floatformat:0|intcomma }})
+      are <strong>not</strong> expected in the drawer, so they are left out of the figure above.
+      {% if shift.voided_count %}
+      <br><strong>{{ shift.voided_count }} sale{{ shift.voided_count|pluralize }} on this shift
+      {{ shift.voided_count|pluralize:"was,were" }} voided.</strong> Check why.
+      {% endif %}
+    </p>
+    {% if shift.note %}<p><strong>Note from the cashier:</strong> {{ shift.note }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Receipts on this shift</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Receipt</th><th>Time</th><th>Customer</th><th>Paid by</th><th class="num">Total</th></tr></thead>
+        <tbody>
+        {% for s in sales %}
+          <tr>
+            <td class="mono">{{ s.receipt_no }}</td>
+            <td>{{ s.created_at|date:"H:i" }}</td>
+            <td class="muted">{{ s.customer_name }}</td>
+            <td>{{ s.get_payment_method_display }}{% if s.status == "VOIDED" %} - VOIDED{% endif %}</td>
+            <td class="num">{{ s.total|floatformat:0|intcomma }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5"><div class="empty"><strong>No sales on this shift</strong></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="print-only" style="margin-top:2rem">
+  <p>Cash handed over by: ______________________ &nbsp;&nbsp; Signature: ______________________</p>
+  <p>Received by: ______________________ &nbsp;&nbsp; Date: ______________________</p>
+</div>
+{% endblock %}

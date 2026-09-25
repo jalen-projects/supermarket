@@ -1,11 +1,24 @@
 {% extends "base.html" %}
 {% block heading %}Backup{% endblock %}
 {% block content %}
-<div class="msg msg-warning">
-  This system keeps everything in one file on this computer. If the machine is stolen
-  or the disk fails, the shop's records go with it. Make a backup at the end of every
-  trading day and copy it onto a flash disk kept somewhere else.
+
+{% if age_days is None %}
+<div class="msg msg-danger">
+  <strong>There is no backup of this shop yet.</strong>
+  Press "Back up now", then copy the file onto a flash disk.
 </div>
+{% elif age_days > 1 %}
+<div class="msg msg-danger">
+  <strong>The last backup was {{ age_days }} days ago.</strong>
+  Everything sold since then would be lost if this computer failed today.
+</div>
+{% else %}
+<div class="msg msg-warning">
+  The system takes one copy by itself each day, on this computer. That protects you from a
+  mistake - it does not protect you from theft, fire, or a dead disk.
+  <strong>Copy it onto a flash disk at the end of every trading day.</strong>
+</div>
+{% endif %}
 
 <div class="card" style="max-width:820px">
   <div class="card-head">
@@ -38,5 +51,32 @@
   </div>
 </div>
 
-<p class="faint">Backups are written to <span class="mono">{{ folder }}</span></p>
+<div class="card" style="max-width:820px">
+  <div class="card-head"><h2>Copy it onto a flash disk</h2></div>
+  <div class="card-body">
+    {% if drives %}
+      <p class="muted">Plug the flash disk in, then choose its letter. The copy goes into a
+        folder called <span class="mono">MAQAM BACKUPS</span> on the disk.</p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="field">
+          <label for="to_drive">Flash disk</label>
+          <select name="to_drive" id="to_drive" class="input">
+            {% for d in drives %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Copy the newest backup there</button>
+      </form>
+    {% else %}
+      <div class="empty">
+        <strong>No flash disk found</strong>
+        <p class="muted">Plug one in and refresh this page. If it still does not appear,
+          use Download above and save the file onto the disk yourself.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<p class="faint">Backups are written to <span class="mono">{{ folder }}</span>.
+  The newest {{ 30 }} are kept and older ones are removed automatically.</p>
 {% endblock %}

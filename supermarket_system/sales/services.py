@@ -2,11 +2,12 @@
 from decimal import Decimal
 
 from django.db import transaction
+from django.utils import timezone
 from django.db.models import F
 
 from inventory.models import StockBatch, StockMovement
 
-from .models import InsufficientStock, Sale, SaleItem, SaleItemBatch
+from .models import InsufficientStock, Sale, SaleItem, SaleItemBatch, Shift
 
 TWO = Decimal("0.01")
 
@@ -26,7 +27,8 @@ def record_sale(*, user, lines, customer=None, discount=Decimal("0"),
 
     sale = Sale.objects.create(
         served_by=user, customer=customer, discount=discount, tax=tax,
-        payment_method=payment_method, amount_paid=amount_paid, note=note)
+        payment_method=payment_method, amount_paid=amount_paid, note=note,
+        shift=current_shift(user))
 
     for line in lines:
         product = line["product"]
@@ -239,3 +241,61 @@ def write_off_batch(batch, user, reason="Expired"):
         product=batch.product, batch=batch, kind=StockMovement.Kind.WRITE_OFF,
         quantity=-quantity, reason=reason, user=user)
     return batch
+
+
+# ---------------------------------------------------------------------------
+# Cashing up - reconciling the drawer against the system
+# ---------------------------------------------------------------------------
+def current_shift(user):
+    """The cashier's open drawer, opening one if they do not have it yet.
+
+    Called from record_sale, so a cashier can never sell into no shift. The
+    alternative - a button they must press before serving - fails on exactly
+    the day somebody forgets, and that is the day the money goes missing.
+    """
+    shift = Shift.objects.filter(user=user, status=Shift.Status.OPEN).first()
+    if shift is None:
+        shift = Shift.objects.create(user=user)
+    return shift
+
+
+@transaction.atomic
+def open_shift(*, user, opening_float=Decimal("0")):
+    """Start a drawer deliberately, declaring the change money in it.
+
+    Used at the start of the day when the owner hands a cashier a float. If
+    the cashier already has a drawer open this only records the float against
+    it - it never opens a second one, because sales would then be split
+    between two shifts and neither would balance.
+    """
+    shift = current_shift(user)
+    shift.opening_float = Decimal(str(opening_float or 0))
+    shift.save(update_fields=["opening_float"])
+    return shift
+
+
+@transaction.atomic
+def close_shift(*, shift, counted_cash, closed_by, note=""):
+    """Hand the drawer over: record what was counted and freeze the shift.
+
+    Nothing is corrected and nothing is hidden. If the drawer is short, the
+    shortage is written down as it stands - a cash-up that quietly adjusts
+    itself to balance is not a control, it is a cover-up.
+    """
+    if not shift.is_open:
+        raise ValueError(
+            f"That drawer was already handed over at "
+            f"{timezone.localtime(shift.closed_at):%d %b %Y %H:%M}.")
+
+    counted = Decimal(str(counted_cash))
+    if counted < 0:
+        raise ValueError("The cash counted cannot be less than zero.")
+
+    shift.counted_cash = counted
+    shift.closed_at = timezone.now()
+    shift.closed_by = closed_by
+    shift.note = note[:200]
+    shift.status = Shift.Status.CLOSED
+    shift.save(update_fields=["counted_cash", "closed_at", "closed_by",
+                              "note", "status"])
+    return shift

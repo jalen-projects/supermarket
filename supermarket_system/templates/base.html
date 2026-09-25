@@ -25,11 +25,14 @@
       <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">New sale (till)</a>
       <a href="{% url 'sale_list' %}" class="{% if request.resolver_match.url_name == 'sale_list' %}active{% endif %}">Receipts</a>
       <a href="{% url 'day_summary' %}" class="{% if request.resolver_match.url_name == 'day_summary' %}active{% endif %}">Today's takings</a>
-      <a href="{% url 'customer_list' %}" class="{% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">Customers</a>
+      <a href="{% url 'cash_up' %}" data-tour="nav-cashup" class="{% if request.resolver_match.url_name == 'cash_up' %}active{% endif %}">Cash up (hand over)</a>
+{% if user.is_admin %}      <a href="{% url 'shift_list' %}" class="{% if request.resolver_match.url_name == 'shift_list' or request.resolver_match.url_name == 'shift_detail' %}active{% endif %}">Cash-ups &amp; shortages</a>
+{% endif %}      <a href="{% url 'customer_list' %}" class="{% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">Customers</a>
 
       {% if user.is_admin %}
       <div class="nav-label">Stock</div>
       <a href="{% url 'product_list' %}" class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">Products</a>
+      <a href="{% url 'capture' %}" data-tour="nav-capture" class="{% if request.resolver_match.url_name == 'capture' %}active{% endif %}">Stock capture (scan shelves)</a>
       <a href="{% url 'stock_list' %}" class="{% if request.resolver_match.url_name == 'stock_list' %}active{% endif %}">Stock available</a>
       <a href="{% url 'stock_take' %}" class="{% if request.resolver_match.url_name == 'stock_take' or request.resolver_match.url_name == 'stock_count_list' or request.resolver_match.url_name == 'stock_count_detail' %}active{% endif %}">Stock take (count the shelves)</a>
       <a href="{% url 'purchase_list' %}" class="{% if request.resolver_match.url_name == 'purchase_list' %}active{% endif %}">Purchases</a>

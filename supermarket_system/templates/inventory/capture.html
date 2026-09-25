@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load humanize static %}
+{% block heading %}Stock capture (scan the shelves){% endblock %}
+{% block topbar %}<a href="{% url 'product_import' %}" class="btn">Import from a spreadsheet instead</a>{% endblock %}
+{% block content %}
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat good">
+    <div class="label">Products on the system</div>
+    <div class="value" id="c-count">{{ total_products|intcomma }}</div>
+    <div class="note">Growing as you scan</div>
+  </div>
+  <div class="stat">
+    <div class="label">How to work</div>
+    <div class="value" style="font-size:1.05rem">Scan &rarr; type &rarr; Enter</div>
+    <div class="note">Enter moves to the next box. You never need the mouse.</div>
+  </div>
+  <div class="stat">
+    <div class="label">Lost the cursor?</div>
+    <div class="value" style="font-size:1.05rem">Press F2</div>
+    <div class="note">It jumps back to the barcode box</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>The item in your hand</h2></div>
+  <div class="card-body">
+    <form id="capture-form" method="post" action="{% url 'capture_save' %}"
+          data-lookup-url="{% url 'capture_lookup' %}">
+      {% csrf_token %}
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="c-barcode">Barcode <span class="muted">(scan it)</span></label>
+          <input type="text" name="barcode" id="c-barcode" class="input"
+                 autocomplete="off" placeholder="Scan, or leave blank for loose goods">
+        </div>
+        <div class="field">
+          <label for="c-name">Product name</label>
+          <input type="text" name="name" id="c-name" class="input"
+                 autocomplete="off" placeholder="e.g. Mukwano Cooking Oil 3L">
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="c-category">Category</label>
+          <select name="category" id="c-category" class="input">
+            {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+          </select>
+          <p class="muted" style="margin-top:.25rem">Stays put between items, so one shelf is quick.</p>
+        </div>
+        <div class="field">
+          <label for="c-unit">Sold by</label>
+          <select name="unit" id="c-unit" class="input">
+            {% for u in units %}<option value="{{ u.pk }}">{{ u.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="c-buying">Buying price <span class="muted">(what he pays)</span></label>
+          <input type="text" name="buying_price" id="c-buying" class="input"
+                 inputmode="decimal" autocomplete="off" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="c-selling">Selling price</label>
+          <input type="text" name="selling_price" id="c-selling" class="input"
+                 inputmode="decimal" autocomplete="off" placeholder="0">
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="c-quantity">How many on the shelf</label>
+          <input type="text" name="quantity" id="c-quantity" class="input"
+                 inputmode="decimal" autocomplete="off" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="c-expiry">Expiry <span class="muted">(only if it expires)</span></label>
+          <input type="date" name="expiry" id="c-expiry" class="input">
+        </div>
+      </div>
+
+      <div id="c-status" class="capture-status"></div>
+
+      <button type="submit" class="btn btn-primary">Save and scan the next (Enter)</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Captured in this sitting</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Product</th><th>Barcode</th><th class="num">Price</th><th class="num">In stock</th></tr></thead>
+        <tbody id="c-log">
+          <tr><td colspan="5"><div class="empty">
+            <strong>Nothing captured yet</strong>
+            <p class="muted">Pick up the first item and scan it.</p>
+          </div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Doing this well</h2></div>
+  <div class="card-body">
+    <ul class="muted">
+      <li><strong>Start with what sells fastest</strong>, not with shelf number one. The shop
+        can open and trade on two hundred fast movers while the rest is still being captured.</li>
+      <li><strong>Work one category at a time.</strong> The category box keeps its value, so a
+        whole shelf goes in without re-picking it.</li>
+      <li><strong>No barcode?</strong> Leave it blank. Loose goods are found by typing the name at the till.</li>
+      <li><strong>Scanning something already captured is fine</strong> - it tops up the quantity
+        instead of complaining.</li>
+      <li><strong>Anything that is not yet captured cannot be sold.</strong> Capture as you go,
+        and take a backup before you stop for the day.</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/capture.js' %}"></script>{% endblock %}
