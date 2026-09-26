@@ -83,9 +83,15 @@
       {% endif %}
       {% block content %}{% endblock %}
 
-      {# Who built it. Every screen the owner and his cashiers look at all day
-         carries the name quietly, and the link is how a visitor who likes what
-         they see finds us. #}
+      {% comment %}
+        Who built it. Every screen the owner and his cashiers look at all day
+        carries the name quietly, and the link is how a visitor who likes what
+        they see finds us.
+
+        {% comment %} and NOT {# #} - Django's hash comment is single-line only,
+        so a multi-line one is printed to the page as ordinary text. It was, on
+        every screen in the shop, until a screenshot caught it.
+      {% endcomment %}
       <footer class="app-foot no-print">
         <span>{{ shop.company_name }}</span>
         <span>Powered by
@@ -114,10 +120,12 @@
 </script>
 {% block scripts %}{% endblock %}
 
-{# ---- the guided tour -------------------------------------------------- #}
-{# Rendered on every page because the tour walks across several of them and
-   has to pick itself up again after each page load. The script does nothing
-   at all unless it is started. #}
+{# ---- the guided tour ---------------------------------------------- #}
+{% comment %}
+  Rendered on every page because the tour walks across several of them and
+  has to pick itself up again after each page load. The script does nothing
+  at all unless it is started.
+{% endcomment %}
 {% if user.is_authenticated %}
   <div hidden id="tour-cfg"
        data-admin="{% if user.is_admin %}1{% else %}0{% endif %}"

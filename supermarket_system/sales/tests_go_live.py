@@ -633,3 +633,45 @@ class BrandingTests(ShopTestCase):
         # No clickable link on paper - nobody types a URL off a thermal roll,
         # and the roll is narrow.
         self.assertNotIn("https://campusnect.com", receipt)
+
+
+class TemplateCommentTests(ShopTestCase):
+    """Django's {# #} comment is SINGLE-LINE ONLY.
+
+    Spread one over two lines and Django does not treat it as a comment at all
+    - it prints the whole thing onto the page as ordinary text. Three of them
+    had been doing exactly that, on every screen in the shop, and nobody
+    noticed until a screenshot was taken for the manual. Use
+    {% comment %}...{% endcomment %} for anything longer than a line.
+    """
+
+    def test_no_template_carries_a_multi_line_hash_comment(self):
+        import re
+        from pathlib import Path
+
+        from django.conf import settings
+
+        offenders = []
+        for path in Path(settings.BASE_DIR, "templates").rglob("*.html"):
+            text = path.read_text(encoding="utf-8")
+            for match in re.finditer(r"\{#", text):
+                rest = text[match.start():]
+                close = rest.find("#}")
+                newline = rest.find("\n")
+                # A comment that meets a newline before its closing #} is
+                # not a comment; it is text the shop will read.
+                if close == -1 or (newline != -1 and newline < close):
+                    line = text[:match.start()].count("\n") + 1
+                    offenders.append(f"{path.name}:{line}")
+        self.assertEqual(
+            offenders, [],
+            "these {# #} comments run past the end of their line, so Django "
+            "prints them on the page: " + ", ".join(offenders))
+
+    def test_no_rendered_page_shows_template_syntax_to_the_user(self):
+        self.client.login(username="owner", password="pw12345")
+        for name in ["dashboard", "pos", "product_create", "shop_settings",
+                     "capture", "cash_up", "backup", "help"]:
+            html = self.client.get(reverse(name)).content.decode()
+            for token in ["{#", "#}", "{%", "%}"]:
+                self.assertNotIn(token, html, f"{name} is leaking template syntax")
