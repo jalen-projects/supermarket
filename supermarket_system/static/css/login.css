@@ -1,0 +1,332 @@
+/* The sign-in page - the shop's front door.
+   Its own stylesheet so the till's app.css stays exactly as it was. Offline-
+   safe: the one web font is served from /static/fonts, nothing from a CDN.
+   Every effect animates elements that are already in place, so with motion
+   reduced - or with CSS animation unsupported - the page is simply whole. */
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("../fonts/bricolage-grotesque-latin.woff2") format("woff2");
+  font-weight: 400 800;
+  font-stretch: 75% 100%;
+  font-display: swap;
+}
+
+:root {
+  --g-950: #04231a;
+  --g-900: #073626;
+  --g-800: #0a5f45;
+  --g-700: #0e7c5a;      /* the brand green, from the logo */
+  --g-500: #22a37a;
+  --g-200: #a9e6cd;
+  --g-100: #d9f4e8;
+  --mango: #f2b33d;      /* ripe mango: the one warm signal */
+  --mango-deep: #8a5a00;
+  --paper: #f7faf8;
+  --ink: #0f1f19;
+  --ink-soft: #4a5d55;
+  --line: #d3ddd8;
+  --danger: #a3271c;
+  --danger-wash: #fbeceb;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --ui: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --out-expo: cubic-bezier(.16, 1, .3, 1);
+  --out-quart: cubic-bezier(.25, 1, .5, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--g-950); }
+
+body.signin {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--ui);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--mango); color: var(--g-950); }
+
+a { color: var(--g-800); text-underline-offset: .2em; text-decoration-thickness: 1px; }
+a:hover { color: var(--g-700); }
+
+/* ---------- layout ---------- */
+.si {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+}
+
+/* ---------- the brand half ---------- */
+.si-brand {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 18% 12%, var(--g-700) 0%, transparent 60%),
+    radial-gradient(90% 80% at 100% 100%, #0b4a35 0%, transparent 70%),
+    var(--g-900);
+  display: flex;
+  align-items: center;
+  padding: clamp(2.5rem, 6vw, 5.5rem);
+}
+
+/* The market arcade: the logo's own arch, repeated as a faint colonnade that
+   drifts past like the view from a boda. A mask, so it takes the panel's
+   colour rather than painting a second one over it. */
+.si-awning {
+  position: absolute;
+  inset: -10% -20%;
+  z-index: -1;
+  background: linear-gradient(100deg, rgba(255,255,255,.035), rgba(255,255,255,.11) 45%, rgba(255,255,255,.035));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='150' viewBox='0 0 120 150'%3E%3Cpath d='M14 150V60a46 46 0 0 1 92 0v90' fill='none' stroke='%23000' stroke-width='5'/%3E%3C/svg%3E") 0 0 / 120px 150px repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='150' viewBox='0 0 120 150'%3E%3Cpath d='M14 150V60a46 46 0 0 1 92 0v90' fill='none' stroke='%23000' stroke-width='5'/%3E%3C/svg%3E") 0 0 / 120px 150px repeat;
+  animation: drift 90s linear infinite;
+}
+
+/* A slow band of light crossing the arcade - late sun on the shop front. */
+.si-brand::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 30%, rgba(242,179,61,.10) 48%, transparent 66%);
+  background-size: 260% 100%;
+  animation: sun 14s var(--out-quart) infinite;
+  pointer-events: none;
+}
+
+.si-brand-inner { position: relative; max-width: 34rem; }
+
+.si-mark {
+  width: clamp(88px, 11vw, 136px);
+  height: auto;
+  display: block;
+  color: #fff;
+  margin: 0 0 clamp(1.5rem, 3vw, 2.25rem) -6%;
+  filter: drop-shadow(0 10px 24px rgba(2, 20, 13, .35));
+}
+.si-mark .arch { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.si-mark .counter { fill: var(--mango); transform-box: fill-box; transform-origin: center; }
+
+.si-name {
+  font-family: var(--display);
+  font-weight: 760;
+  font-stretch: 88%;
+  font-size: clamp(2.3rem, 4.6vw, 4.1rem);
+  line-height: .98;
+  letter-spacing: -.035em;
+  margin: 0;
+  text-wrap: balance;
+}
+.si-tagline {
+  font-family: var(--display);
+  font-weight: 450;
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  color: var(--g-100);
+  margin: .9rem 0 0;
+}
+
+.si-facts {
+  margin: clamp(2rem, 5vh, 3.25rem) 0 0;
+  display: grid;
+  gap: .55rem;
+  font-size: .95rem;
+}
+.si-facts div {
+  display: grid;
+  grid-template-columns: 4.25rem 1fr;
+  gap: 1rem;
+  padding-top: .55rem;
+  border-top: 1px solid rgba(169, 230, 205, .22);
+}
+.si-facts dt { color: var(--g-200); }
+.si-facts dd { margin: 0; color: #fff; font-variant-numeric: tabular-nums; }
+
+/* ---------- the sign-in half ---------- */
+.si-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1.25rem, 5vw, 4rem) 1.5rem;
+}
+
+.si-card { width: 100%; max-width: 25rem; margin: auto 0; }
+
+.si-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-stretch: 92%;
+  font-size: clamp(2rem, 3.2vw, 2.6rem);
+  line-height: 1.05;
+  letter-spacing: -.03em;
+  margin: 0;
+  color: var(--g-950);
+}
+.si-lede { margin: .5rem 0 2rem; color: var(--ink-soft); font-size: 1.05rem; }
+
+.si-error {
+  margin: -0.75rem 0 1.5rem;
+  padding: .8rem 1rem;
+  border-radius: 12px;
+  background: var(--danger-wash);
+  color: var(--danger);
+  font-size: .95rem;
+  animation: nudge .42s var(--out-quart);
+}
+
+.si-form { display: grid; gap: 1.15rem; }
+
+.si-field label {
+  display: block;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: .4rem;
+}
+
+.si-field input {
+  width: 100%;
+  height: 3.35rem;
+  padding: 0 1rem;
+  font: inherit;
+  font-size: 1.05rem;   /* never under 16px, or a phone zooms the page in */
+  color: var(--ink);
+  caret-color: var(--g-700);
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(7, 54, 38, .04);
+  transition: border-color .18s var(--out-quart), box-shadow .25s var(--out-quart);
+}
+.si-field input:hover { border-color: #b6c6bf; }
+.si-field input:focus {
+  outline: none;
+  border-color: var(--g-700);
+  box-shadow: 0 0 0 4px rgba(14, 124, 90, .16), 0 6px 18px -8px rgba(7, 54, 38, .25);
+}
+
+.si-pass { position: relative; }
+.si-pass input { padding-right: 4.75rem; }
+.si-peek {
+  position: absolute;
+  top: 50%;
+  right: .45rem;
+  transform: translateY(-50%);
+  height: 2.5rem;
+  padding: 0 .85rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--g-800);
+  font: 600 .88rem/1 var(--ui);
+  cursor: pointer;
+}
+.si-peek:hover { background: var(--g-100); }
+.si-peek:focus-visible { outline: 2px solid var(--g-700); outline-offset: 1px; }
+
+.si-caps {
+  margin: .45rem 0 0;
+  font-size: .88rem;
+  color: var(--mango-deep);
+  font-weight: 600;
+}
+
+.si-submit {
+  margin-top: .5rem;
+  height: 3.6rem;
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  font: 650 1.08rem/1 var(--ui);
+  letter-spacing: .005em;
+  color: #fff;
+  background: linear-gradient(180deg, var(--g-700), var(--g-800));
+  box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 10px 24px -10px rgba(7, 54, 38, .65);
+  cursor: pointer;
+  transition: transform .16s var(--out-quart), box-shadow .25s var(--out-quart), filter .2s;
+}
+.si-submit:hover { filter: brightness(1.06); box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 14px 30px -12px rgba(7, 54, 38, .7); }
+.si-submit:active { transform: scale(.985); }
+.si-submit:focus-visible { outline: 3px solid var(--mango); outline-offset: 3px; }
+.si-submit-arrow { width: 1.25rem; height: 1.25rem; transition: transform .3s var(--out-expo); }
+.si-submit:hover .si-submit-arrow { transform: translateX(4px); }
+.si-submit.is-busy { cursor: progress; filter: saturate(.85); }
+.si-submit.is-busy .si-submit-arrow { animation: travel .9s var(--out-quart) infinite; }
+.si-submit:disabled { cursor: progress; }
+
+.si-foot {
+  margin: 1.75rem 0 0;
+  font-size: .88rem;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.si-credit {
+  margin: 2rem 0 0;
+  font-size: .8rem;
+  color: var(--ink-soft);
+}
+
+/* ---------- the one authored moment: the mark builds itself ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .si-mark .arch-1 { animation: draw 1.05s var(--out-expo) .15s both; }
+  .si-mark .arch-2 { animation: draw 1.05s var(--out-expo) .38s both; }
+  .si-mark .counter { animation: counter .7s var(--out-expo) .8s both; }
+  .si-name { animation: rise .9s var(--out-expo) .7s both; }
+  .si-tagline { animation: rise .9s var(--out-expo) .82s both; }
+  .si-facts { animation: rise .9s var(--out-expo) .94s both; }
+  .si-card { animation: arrive .8s var(--out-expo) .05s both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .si-awning, .si-brand::after { animation: none; }
+  .si-submit, .si-submit-arrow, .si-field input { transition: none; }
+  .si-error { animation: none; }
+}
+
+@keyframes draw    { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes counter { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes rise    { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes arrive  { from { opacity: 0; transform: translateY(22px) scale(.985); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes drift   { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-240px, 0, 0); } }
+@keyframes sun     { 0% { background-position: 120% 0; } 60%, 100% { background-position: -40% 0; } }
+@keyframes nudge   { 0% { transform: translateX(0); } 25% { transform: translateX(-6px); } 55% { transform: translateX(4px); } 100% { transform: translateX(0); } }
+@keyframes travel  { 0% { transform: translateX(-3px); opacity: .4; } 50% { opacity: 1; } 100% { transform: translateX(6px); opacity: .4; } }
+
+/* ---------- phone ---------- */
+@media (max-width: 860px) {
+  .si { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .si-brand {
+    padding: calc(2.25rem + env(safe-area-inset-top)) 1.5rem 3.75rem;
+    align-items: flex-end;
+  }
+  .si-mark { width: 64px; margin: 0 0 1rem -4px; }
+  .si-name { font-size: clamp(1.9rem, 8.4vw, 2.6rem); }
+  .si-tagline { margin-top: .5rem; font-size: 1rem; }
+  .si-facts { display: none; }
+  .si-panel {
+    position: relative;
+    margin-top: -1.75rem;
+    background: var(--paper);
+    border-radius: 26px 26px 0 0;
+    box-shadow: 0 -10px 30px -12px rgba(2, 20, 13, .45);
+    padding: 2.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+    justify-content: flex-start;
+  }
+  .si-card { margin: 0; }
+  .si-lede { margin-bottom: 1.5rem; }
+}

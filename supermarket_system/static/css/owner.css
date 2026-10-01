@@ -1,0 +1,234 @@
+/* The owner's phone screen. Shares its tokens and font with login.css, which
+   is loaded first: the sign-in and this page are the same front door. */
+
+html:has(body.ow) { background: var(--paper); }
+
+body.ow {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--ui);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+.ow-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: calc(.9rem + env(safe-area-inset-top)) 1.1rem .9rem;
+  color: #fff;
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--g-700), transparent 70%),
+    var(--g-900);
+  box-shadow: 0 8px 24px -14px rgba(2, 20, 13, .7);
+}
+.ow-mark { width: 38px; height: 38px; flex: none; color: #fff; }
+.ow-head-text { min-width: 0; flex: 1; }
+.ow-shop {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 720;
+  font-stretch: 90%;
+  font-size: 1rem;
+  letter-spacing: -.01em;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: balance;
+}
+.ow-time { margin: 0; font-size: .82rem; color: var(--g-200); font-variant-numeric: tabular-nums; }
+
+.ow-state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .35rem .7rem;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 650;
+  background: rgba(255, 255, 255, .12);
+}
+.ow-state i { width: .55rem; height: .55rem; border-radius: 50%; background: currentColor; }
+.ow-state.is-live { color: #8ff0c4; }
+.ow-state.is-silent { color: #fff; background: #b42318; }
+.ow-state.is-closed, .ow-state.is-waiting { color: #d6e4de; }
+@media (prefers-reduced-motion: no-preference) {
+  .ow-state.is-live i { animation: beat 2.4s var(--out-quart) infinite; }
+  .ow-state.is-silent i { animation: beat 1.1s var(--out-quart) infinite; }
+}
+@keyframes beat {
+  0% { box-shadow: 0 1px 1px rgba(0,0,0,.2), 0 0 0 0 currentColor; }
+  70% { box-shadow: 0 1px 1px rgba(0,0,0,.2), 0 0 0 .55rem transparent; }
+  100% { box-shadow: 0 1px 1px rgba(0,0,0,.2), 0 0 0 0 transparent; }
+}
+
+.ow-main {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem calc(2rem + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 1.5rem;
+}
+
+.ow-notice {
+  margin: 0;
+  padding: .8rem 1rem;
+  border-radius: 14px;
+  background: #fff4dc;
+  color: var(--mango-deep);
+  font-size: .9rem;
+}
+
+.ow-alarm {
+  padding: 1.1rem 1.15rem;
+  border-radius: 18px;
+  background: #b42318;
+  color: #fff;
+  box-shadow: 0 14px 30px -16px rgba(120, 20, 10, .8);
+}
+.ow-alarm h2 { margin: 0 0 .4rem; font-family: var(--display); font-size: 1.25rem; line-height: 1.15; letter-spacing: -.02em; }
+.ow-alarm p { margin: 0; font-size: .94rem; color: #ffe3df; }
+
+/* The takings, as the till prints them: a strip of thermal paper with a
+   torn edge, dotted leaders, and the total in bold at the foot. */
+.ow-receipt {
+  position: relative;
+  padding: 1.4rem 1.25rem 1.6rem;
+  background: #fff;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 1px 2px rgba(7, 54, 38, .06), 0 18px 34px -22px rgba(7, 54, 38, .45);
+  font-family: "Consolas", "SF Mono", "Courier New", monospace;
+}
+.ow-receipt::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -9px;
+  height: 10px;
+  background:
+    linear-gradient(135deg, #fff 50%, transparent 50%) 0 0 / 14px 10px repeat-x,
+    linear-gradient(225deg, #fff 50%, transparent 50%) 0 0 / 14px 10px repeat-x;
+}
+.ow-receipt-title {
+  margin: 0 0 1rem;
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.ow-lines { margin: 0; display: grid; gap: .35rem; font-size: .95rem; }
+/* Dotted leaders: the dots are the row's background, and the label and the
+   figure sit on white chips over them. */
+.ow-lines div {
+  display: flex;
+  align-items: baseline;
+  background: radial-gradient(circle, #b9c7c0 1px, transparent 1.4px) 0 72% / 6px 6px repeat-x;
+}
+.ow-lines dt { color: var(--ink-soft); background: #fff; padding-right: .3rem; }
+.ow-lines dd {
+  margin: 0 0 0 auto;
+  padding-left: .3rem;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.ow-total {
+  margin: 1rem 0 0;
+  padding-top: .8rem;
+  border-top: 2px dashed #c9d5cf;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.ow-total span { font-size: .9rem; color: var(--ink-soft); }
+.ow-total strong {
+  font-family: var(--display);
+  font-size: clamp(2rem, 10vw, 2.6rem);
+  font-weight: 760;
+  font-stretch: 90%;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--g-950);
+  line-height: 1;
+}
+.ow-count { margin: .6rem 0 0; font-size: .85rem; color: var(--ink-soft); text-align: right; }
+.ow-void { color: #b42318; font-weight: 700; }
+
+.ow-block h2 {
+  margin: 0 0 .7rem;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: var(--g-950);
+}
+
+.ow-tills { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.ow-tills li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: .7rem;
+  align-items: center;
+  padding: .75rem .9rem;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(7, 54, 38, .06);
+}
+.ow-tills i { grid-row: span 2; width: .7rem; height: .7rem; border-radius: 50%; }
+.ow-tills .is-on i { background: var(--g-500); }
+.ow-tills .is-off i { background: #c4cdc9; }
+.ow-till-name { font-weight: 600; }
+.ow-till-seen { font-size: .85rem; color: var(--ink-soft); }
+.ow-tills .is-off .ow-till-seen { color: #b42318; }
+.ow-gap { margin: .6rem 0 0; font-size: .88rem; color: #b42318; font-weight: 600; }
+
+.ow-events { list-style: none; margin: 0; padding: 0; }
+.ow-events li {
+  display: grid;
+  grid-template-columns: 3.1rem 1fr;
+  gap: .6rem;
+  padding: .6rem 0;
+  border-bottom: 1px solid #e3eae6;
+  font-size: .94rem;
+}
+.ow-events time { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ow-events .is-serious span { color: #a3271c; font-weight: 600; }
+.ow-more { display: inline-block; margin-top: .8rem; font-weight: 600; }
+
+.ow-empty { margin: 0; color: var(--ink-soft); font-size: .94rem; }
+
+.ow-install {
+  padding: 1.1rem;
+  border-radius: 18px;
+  background: var(--g-100);
+}
+.ow-install p { margin: 0 0 .8rem; }
+.ow-ios { margin: 0; font-size: .9rem; color: var(--ink-soft); }
+
+.ow-nav { display: grid; gap: .25rem; padding-top: .5rem; border-top: 1px solid #e3eae6; }
+.ow-nav a, .ow-nav button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: .85rem 0;
+  font: 600 1rem/1.2 var(--ui);
+  color: var(--g-800);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+.ow-nav form { margin: 0; }
+.ow-nav button { color: var(--ink-soft); }

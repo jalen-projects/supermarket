@@ -1,0 +1,24 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>No connection</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  <link rel="stylesheet" href="{% static 'css/owner.css' %}">
+</head>
+<body class="ow">
+{% comment %}
+  Shown by the phone app when there is no connection. It carries no figures
+  on purpose - a total from this morning shown as if it were now would be
+  believed.
+{% endcomment %}
+<main class="ow-main" style="min-height:100vh;align-content:center">
+  <section class="ow-alarm" style="background:var(--g-900)">
+    <h2>This phone has no connection</h2>
+    <p>Your shop's figures live on the server, not on the phone, so nothing can be shown until the connection comes back. The shop itself is not affected.</p>
+  </section>
+  <a class="si-submit" href="/owner/" style="text-decoration:none">Try again</a>
+</main>
+</body>
+</html>

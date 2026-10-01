@@ -14,6 +14,8 @@ from django.utils import timezone
 
 from inventory.models import Category, Product
 from shop.models import ShopSettings
+from shop import audit
+from shop.models import AuditEvent
 from shop.permissions import admin_required
 
 from .forms import CashUpForm, CustomerForm, OpenDrawerForm
@@ -175,7 +177,14 @@ def sale_void(request, pk):
         if sale.status == Sale.Status.VOIDED:
             messages.info(request, "That receipt was already voided.")
         else:
-            sale.void(request.user, request.POST.get("reason", "")[:200])
+            reason = request.POST.get("reason", "")[:200]
+            sale.void(request.user, reason)
+            audit.record(
+                AuditEvent.Action.SALE_VOIDED,
+                f"Voided {sale.receipt_no} ({sale.total:,.0f}), sold by "
+                f"{sale.served_by.display_name}",
+                request=request, reference=sale.receipt_no,
+                changes=f"Reason: {reason or '(none given)'}")
             messages.success(request, f"{sale.receipt_no} voided and stock returned.")
     return redirect("sale_detail", pk=pk)
 
@@ -279,6 +288,15 @@ def cash_up(request):
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect("cash_up")
+            variance = closed.variance
+            state = ("balanced" if variance == 0 else
+                     f"SHORT {-variance:,.0f}" if variance < 0 else f"over {variance:,.0f}")
+            audit.record(
+                AuditEvent.Action.DRAWER_HANDED_OVER,
+                f"{closed.user.display_name} handed over the drawer - {state}",
+                request=request, reference=f"shift-{closed.pk}",
+                changes=(f"Expected cash: {closed.expected_cash:,.0f}\n"
+                         f"Counted cash: {closed.counted_cash:,.0f}"))
             messages.success(request, "Drawer handed over. Show this page to the manager.")
             return redirect("shift_detail", pk=closed.pk)
     else:

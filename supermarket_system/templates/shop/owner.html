@@ -1,0 +1,147 @@
+{% load static humanize %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My shop - {{ shop.company_name }}</title>
+  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  <link rel="stylesheet" href="{% static 'css/owner.css' %}">
+  {% include "partials/app_head.html" %}
+</head>
+<body class="ow">
+{% comment %}
+  The owner's shop on his phone. Built for one hand and a bright day: the
+  takings first, then whether the tills are alive, then what happened. It
+  refreshes itself every minute while it is on screen, and never shows a
+  number it did not just fetch - the phone app caches no pages.
+{% endcomment %}
+<header class="ow-head">
+  <svg class="ow-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="currentColor" stroke-width="40" stroke-linecap="round">
+      <path d="M150 326 V190 A53 53 0 0 1 256 190 V326"/><path d="M256 190 A53 53 0 0 1 362 190 V326"/>
+    </g>
+    <rect x="140" y="366" width="232" height="24" rx="12" fill="#f2b33d"/>
+  </svg>
+  <div class="ow-head-text">
+    <p class="ow-shop">{{ shop.company_name }}</p>
+    <p class="ow-time">{{ now|date:"l j F" }}, {{ now|time:"H:i" }}</p>
+  </div>
+  {% if not shop_open %}
+    <span class="ow-state is-closed"><i></i>Closed</span>
+  {% elif open_gap %}
+    <span class="ow-state is-silent"><i></i>Tills silent</span>
+  {% elif alive %}
+    <span class="ow-state is-live"><i></i>Live</span>
+  {% else %}
+    <span class="ow-state is-waiting"><i></i>No till yet</span>
+  {% endif %}
+</header>
+
+<main class="ow-main">
+  {% if hosting_days_left is not None %}
+    <p class="ow-notice">
+      Online hosting {% if hosting_days_left < 0 %}ended {{ shop.hosting_paid_until|date:"j M Y" }}{% else %}ends in {{ hosting_days_left }} day{{ hosting_days_left|pluralize }}{% endif %}.
+      Renewal UGX 500,000 / year - CampusNect, +256 708 646603.
+    </p>
+  {% endif %}
+
+  {% if open_gap %}
+    <section class="ow-alarm" role="alert">
+      <h2>No till has reached the system since {{ open_gap.started_at|time:"H:i" }}</h2>
+      <p>That is {{ open_gap.length_label }} while the shop should be open. Sales made now are not being recorded. It may be the internet, the power, or the router - a call to the shop will tell you which.</p>
+    </section>
+  {% endif %}
+
+  <section class="ow-receipt" aria-labelledby="takings">
+    <h2 id="takings" class="ow-receipt-title">Today so far</h2>
+    <dl class="ow-lines">
+      <div><dt>Cash</dt><dd>{{ cash|floatformat:0|intcomma }}</dd></div>
+      <div><dt>Mobile money</dt><dd>{{ mobile|floatformat:0|intcomma }}</dd></div>
+      {% if card %}<div><dt>Card</dt><dd>{{ card|floatformat:0|intcomma }}</dd></div>{% endif %}
+      {% if credit %}<div><dt>On credit</dt><dd>{{ credit|floatformat:0|intcomma }}</dd></div>{% endif %}
+    </dl>
+    <p class="ow-total"><span>Total {{ currency }}</span><strong>{{ total|floatformat:0|intcomma }}</strong></p>
+    <p class="ow-count">{{ count }} receipt{{ count|pluralize }}{% if voided %} &middot; <a href="{% url 'audit' %}?action=SALE_VOIDED" class="ow-void">{{ voided }} voided</a>{% endif %}</p>
+  </section>
+
+  <section class="ow-block" aria-labelledby="tills">
+    <h2 id="tills">Tills</h2>
+    {% if tills %}
+      <ul class="ow-tills">
+        {% for t in tills %}
+          <li class="{% if t.minutes_silent < 3 %}is-on{% else %}is-off{% endif %}">
+            <i aria-hidden="true"></i>
+            <span class="ow-till-name">{{ t.label|default:"Till" }}</span>
+            <span class="ow-till-seen">{% if t.minutes_silent < 3 %}online now{% else %}last seen {{ t.last_seen|naturaltime }}{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="ow-empty">No till has signed in online yet. They appear here the moment a cashier opens the system.</p>
+    {% endif %}
+    {% for g in gaps_today %}
+      {% if not g.is_open %}
+        <p class="ow-gap">Silent {{ g.started_at|time:"H:i" }}&ndash;{{ g.ended_at|time:"H:i" }} ({{ g.length_label }})</p>
+      {% endif %}
+    {% endfor %}
+  </section>
+
+  <section class="ow-block" aria-labelledby="activity">
+    <h2 id="activity">What happened</h2>
+    {% if events %}
+      <ol class="ow-events">
+        {% for e in events %}
+          <li{% if e.is_serious %} class="is-serious"{% endif %}>
+            <time datetime="{{ e.at|date:'c' }}">{{ e.at|time:"H:i" }}</time>
+            <span>{{ e.summary }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+      <a class="ow-more" href="{% url 'audit' %}">The full audit trail</a>
+    {% else %}
+      <p class="ow-empty">Nothing yet today.</p>
+    {% endif %}
+  </section>
+
+  <section class="ow-install" id="install" hidden>
+    <p><strong>Put this on your home screen.</strong> It opens like an app, straight to this page.</p>
+    <button type="button" class="si-submit" id="install-btn">Install the app</button>
+  </section>
+  <p class="ow-ios" id="ios-hint" hidden>To add it to your iPhone: tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+
+  <nav class="ow-nav">
+    <a href="{% url 'dashboard' %}">Open the full system</a>
+    <a href="{% url 'day_summary' %}">Today's takings in detail</a>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form>
+  </nav>
+</main>
+
+<script>
+  (function () {
+    // Fresh every minute while he is looking; not at all while the phone is
+    // in his pocket.
+    setInterval(function () {
+      if (document.visibilityState === 'visible') location.reload();
+    }, 60000);
+
+    var box = document.getElementById('install');
+    var deferred = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferred = e;
+      box.hidden = false;
+    });
+    document.getElementById('install-btn').addEventListener('click', function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.finally(function () { box.hidden = true; deferred = null; });
+    });
+    var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !standalone) {
+      document.getElementById('ios-hint').hidden = false;
+    }
+  })();
+</script>
+</body>
+</html>

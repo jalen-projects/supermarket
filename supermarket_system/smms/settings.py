@@ -5,14 +5,42 @@ This system is designed to run OFFLINE on the shop's own computer.
 Nothing is sent to the internet. All data lives in db.sqlite3 next to this file.
 
 There is one exception, and it is deliberately opt-in: setting SMMS_ONLINE=1
-hardens the same code for the internet-facing demo the client browses from his
-phone. The shop's own installation never sets it, so nothing below changes for
-him. See DEMO.md.
+hardens the same code for the internet: first the throwaway demo he browsed
+from his phone (DEMO.md), and since October 2026 the shop itself, live at
+maqam.campusnect.com (DEPLOY-ONLINE.md). A copy installed on a shop computer
+never sets it, so nothing below changes there.
 """
 from pathlib import Path
 import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _load_env_file(path):
+    """KEY=value lines from the online server's private settings file.
+
+    The service and the five-minute cron job both start through this, so they
+    can never disagree about a setting - and a password full of $ and # signs
+    is read as written, which sourcing the file in a shell would not do.
+    Anything already in the real environment wins.
+    """
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        os.environ.setdefault(key, value)
+
+
+if os.environ.get("SMMS_ENV_FILE"):
+    _load_env_file(os.environ["SMMS_ENV_FILE"])
 
 # Are we the public demo rather than the shop's own machine?
 ONLINE = os.environ.get("SMMS_ONLINE", "0") == "1"
@@ -201,3 +229,32 @@ SESSION_COOKIE_AGE = 60 * 60 * 12
 SESSION_SAVE_EVERY_REQUEST = False
 
 MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"
+
+# ---------------------------------------------------------------------------
+# Email - online only
+# ---------------------------------------------------------------------------
+# The shop's own computer has no mail server and nothing to say to anyone, so
+# with no EMAIL_HOST set every message is quietly dropped. Online, the server
+# emails the owner when the tills go silent and with each night's summary.
+# The SMTP values are the same ones CampusNect's own server already uses -
+# DEPLOY-ONLINE.md copies them across rather than inventing a second account.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in ("1", "true", "yes")
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST
+    else "django.core.mail.backends.dummy.EmailBackend")
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "SMMS_FROM_EMAIL",
+    f"Shop system <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else "shop@localhost")
+
+# Who hears about silent tills and gets the nightly summary. Comma-separated,
+# and kept in the server's environment rather than in this public repository.
+OWNER_ALERT_EMAILS = [e.strip() for e in
+                      os.environ.get("MAQAM_ALERT_EMAIL", "").split(",") if e.strip()]
+
+# The address written into the alert emails' links.
+PUBLIC_HOSTNAME = os.environ.get("SMMS_HOSTNAME", "")

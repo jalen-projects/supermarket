@@ -1,0 +1,23 @@
+{% load static %}{% comment %}
+  The phone-app half of every page: the manifest that lets a phone install
+  the system like an app, the icon it uses, and the service worker. The
+  worker only registers online - the shop's own computer serves plain http
+  on its network, where browsers refuse service workers anyway.
+{% endcomment %}
+<link rel="manifest" href="{% url 'manifest' %}">
+<meta name="theme-color" content="#0a5f45">
+<link rel="apple-touch-icon" href="{% static 'brand/app-180.png' %}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{{ shop.company_name|truncatewords:1 }}">
+{% if online %}
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('{% url "service_worker" %}', { scope: '/' })
+        .catch(function () {});
+    });
+  }
+</script>
+{% endif %}

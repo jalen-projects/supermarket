@@ -11,7 +11,12 @@ from django.utils.dateparse import parse_date
 from sales.models import InsufficientStock
 from sales.services import (adjust_stock, apply_stock_count, receive_purchase,
                             write_off_batch)
+from shop import audit
+from shop.models import AuditEvent
 from shop.permissions import admin_required
+
+PRODUCT_LABELS = {"name": "Name", "selling_price": "Selling price",
+                  "buying_price": "Buying price", "is_active": "For sale"}
 
 from .forms import (CategoryForm, ProductForm, PurchaseForm, PurchaseItemFormSet,
                     StockAdjustmentForm, SupplierForm, UnitForm)
@@ -94,8 +99,22 @@ def product_create(request):
 def product_edit(request, pk):
     product = get_object_or_404(Product, pk=pk)
     form = ProductForm(request.POST or None, instance=product)
+    watched = ["name", "selling_price", "buying_price", "is_active"]
+    before = {f: getattr(product, f) for f in watched}
     if request.method == "POST" and form.is_valid():
         form.save()
+        changes = audit.diff(before, {f: getattr(product, f) for f in watched},
+                             PRODUCT_LABELS)
+        # Only a change of price is worth a line. Selling at a price the owner
+        # never set, then putting it back, is how a till leaks quietly; a
+        # corrected spelling is not. The name and on-sale flag ride along in
+        # the same line when they changed at the same time.
+        prices = any(before[f] != getattr(product, f)
+                     for f in ("selling_price", "buying_price"))
+        if prices:
+            audit.record(
+                AuditEvent.Action.PRICE_CHANGED, f"Price changed: {product.name}",
+                request=request, changes=changes, reference=f"product-{product.pk}")
         messages.success(request, f"{product.name} updated.")
         return redirect("product_detail", pk=product.pk)
     return render(request, "inventory/product_form.html",
@@ -148,6 +167,11 @@ def product_delete(request, pk):
 
     if request.method == "POST":
         name = product.name
+        audit.record(
+            AuditEvent.Action.PRODUCT_DELETED,
+            f"{'Deleted' if can_erase else 'Took off sale'}: {name}",
+            request=request, reference=f"product-{product.pk}",
+            changes=f"Stock on hand: {stock:g}" if stock else "")
         if can_erase:
             product.delete()
             messages.success(request, f"{name} was deleted. It had no history to keep.")
@@ -191,6 +215,12 @@ def product_adjust(request, pk):
             adjust_stock(product=product, quantity=form.cleaned_data["quantity"],
                          kind=form.cleaned_data["kind"], reason=form.cleaned_data["reason"],
                          user=request.user)
+            audit.record(
+                AuditEvent.Action.STOCK_ADJUSTED,
+                f"Stock adjusted: {product.name} {form.cleaned_data['quantity']:+g}",
+                request=request, reference=f"product-{product.pk}",
+                changes=(f"Kind: {form.cleaned_data['kind']}\n"
+                         f"Reason: {form.cleaned_data['reason'] or '(none given)'}"))
             messages.success(request, f"Stock for {product.name} adjusted.")
             return redirect("product_detail", pk=product.pk)
         except (InsufficientStock, ValueError) as exc:
@@ -427,7 +457,12 @@ def batch_write_off(request, pk):
     batch = get_object_or_404(StockBatch, pk=pk)
     if request.method == "POST":
         reason = request.POST.get("reason") or "Expired"
+        quantity = batch.quantity_remaining
         write_off_batch(batch, request.user, reason)
+        audit.record(
+            AuditEvent.Action.STOCK_WRITTEN_OFF,
+            f"Wrote off {quantity:g} {batch.product.name}",
+            request=request, reference=f"batch-{batch.pk}", changes=f"Reason: {reason}")
         messages.success(
             request, f"{batch.product.name} written off the books ({reason}).")
     return redirect(request.POST.get("next") or "expiry_list")
@@ -495,6 +530,11 @@ def stock_take(request):
             except (InsufficientStock, ValueError) as exc:
                 messages.error(request, str(exc))
             else:
+                audit.record(
+                    AuditEvent.Action.STOCK_COUNTED,
+                    f"Stock take {count.reference}: {count.line_count} counted, "
+                    f"{count.difference_count} did not match",
+                    request=request, reference=count.reference[:60])
                 messages.success(
                     request,
                     f"{count.reference} recorded. {count.line_count} product"

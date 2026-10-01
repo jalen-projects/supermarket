@@ -1,35 +1,51 @@
 import json
 import os
+import re
 import socket
 import sqlite3
 from datetime import timedelta
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Count, Sum
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
 
 from inventory.models import Product, StockBatch, expired_batches, expiring_batches
 from sales.models import Sale
 
-from . import services
-from .forms import PasswordResetForm, ShopSettingsForm, UserEditForm, UserForm
-from .models import ShopSettings, User
+from . import audit, services, watch
+from .forms import (GuardedAuthenticationForm, PasswordResetForm, ShopSettingsForm,
+                    UserEditForm, UserForm)
+from .models import AuditEvent, ShopSettings, Till, TillGap, User
 from .permissions import admin_required
+
+Action = AuditEvent.Action
+
+PHONE_AGENT = re.compile(r"Android|iPhone|iPad|iPod|Mobile", re.I)
 
 
 class LoginView(auth_views.LoginView):
     template_name = "shop/login.html"
     redirect_authenticated_user = True
+    authentication_form = GuardedAuthenticationForm
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["first_run"] = not User.objects.exists()
+        ctx["online"] = django_settings.ONLINE
+        hour = timezone.localtime().hour
+        ctx["greeting"] = ("Good morning" if hour < 12 else
+                           "Good afternoon" if hour < 17 else "Good evening")
+        ctx["trading_day"] = timezone.localdate()
         return ctx
 
 
@@ -96,8 +112,14 @@ def dashboard(request):
 def shop_settings_view(request):
     obj = ShopSettings.get()
     form = ShopSettingsForm(request.POST or None, request.FILES or None, instance=obj)
+    before = {f: getattr(obj, f) for f in form.fields if f != "logo"}
     if request.method == "POST" and form.is_valid():
         form.save()
+        after = {f: getattr(obj, f) for f in before}
+        changes = audit.diff(before, after, {f: form.fields[f].label for f in before})
+        if changes:
+            audit.record(Action.SETTINGS_CHANGED, "Shop details changed",
+                         request=request, changes=changes)
         messages.success(request, "Shop details saved. They now appear on every receipt.")
         return redirect("shop_settings")
     return render(request, "shop/settings.html", {"form": form, "obj": obj})
@@ -117,6 +139,9 @@ def user_create(request):
     form = UserForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
+        audit.record(Action.USER_CREATED,
+                     f"Added {user.display_name} ({user.get_role_display()})",
+                     request=request, reference=user.username)
         messages.success(request, f"{user.display_name} can now sign in.")
         return redirect("user_list")
     return render(request, "shop/user_form.html", {"form": form, "title": "Add a user"})
@@ -126,8 +151,14 @@ def user_create(request):
 def user_edit(request, pk):
     user = get_object_or_404(User, pk=pk)
     form = UserEditForm(request.POST or None, instance=user)
+    before = {f: getattr(user, f) for f in form.fields}
     if request.method == "POST" and form.is_valid():
         form.save()
+        changes = audit.diff(before, {f: getattr(user, f) for f in before},
+                             {f: form.fields[f].label for f in before})
+        if changes:
+            audit.record(Action.USER_CHANGED, f"Changed {user.display_name}",
+                         request=request, changes=changes, reference=user.username)
         messages.success(request, "User updated.")
         return redirect("user_list")
     return render(request, "shop/user_form.html",
@@ -141,6 +172,8 @@ def user_password(request, pk):
     if request.method == "POST" and form.is_valid():
         user.set_password(form.cleaned_data["password1"])
         user.save()
+        audit.record(Action.PASSWORD_RESET, f"New password set for {user.display_name}",
+                     request=request, reference=user.username)
         messages.success(request, f"New password set for {user.display_name}.")
         return redirect("user_list")
     return render(request, "shop/user_form.html",
@@ -298,4 +331,137 @@ def backup_download(request, name):
     if not path.exists() or path.parent != django_settings.BACKUP_DIR:
         messages.error(request, "That backup no longer exists.")
         return redirect("backup")
+    # A backup is the whole shop - every price, every sale, every login. Who
+    # took a copy away is exactly the kind of thing the owner will ask.
+    audit.record(Action.BACKUP_DOWNLOADED, f"Downloaded the backup {name}",
+                 request=request, reference=name[:60])
     return FileResponse(open(path, "rb"), as_attachment=True, filename=name)
+
+
+# ---------------------------------------------------------------------------
+# The watch on the tills
+# ---------------------------------------------------------------------------
+@require_POST
+def till_check_in(request):
+    """A till saying it is alive. Called once a minute by every open screen.
+
+    Signed-in only: an anonymous ping would let anyone on the internet keep
+    the alarm quiet while the shop's own tills were switched off.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False}, status=403)
+    try:
+        data = json.loads(request.body.decode() or "{}")
+    except (ValueError, UnicodeDecodeError):
+        data = {}
+    agent = request.META.get("HTTP_USER_AGENT", "")
+    till = watch.check_in(
+        key=str(data.get("till", "")), label=str(data.get("label", "")),
+        user=request.user, ip=audit.client_ip(request),
+        phone=bool(PHONE_AGENT.search(agent)))
+    return JsonResponse({"ok": till is not None})
+
+
+@admin_required
+def owner_view(request):
+    """The owner's shop on his phone: what was sold, are the tills alive, and
+    what happened that he would want to know about."""
+    shop = ShopSettings.get()
+    now = timezone.now()
+    today = timezone.localdate()
+    start = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+    todays = Sale.objects.filter(created_at__gte=start)
+    done = todays.filter(status=Sale.Status.COMPLETED)
+    by_method = {row["payment_method"]: row["t"] for row in
+                 done.values("payment_method").annotate(t=Sum("total"))}
+    tills = list(Till.objects.filter(is_phone=False).select_related("last_user")[:8])
+    last_seen = tills[0].last_seen if tills else None
+    return render(request, "shop/owner.html", {
+        "now": now,
+        "total": done.aggregate(t=Sum("total"))["t"] or Decimal("0"),
+        "count": done.count(),
+        "cash": by_method.get(Sale.Payment.CASH, Decimal("0")),
+        "mobile": by_method.get(Sale.Payment.MOBILE, Decimal("0")),
+        "card": by_method.get(Sale.Payment.CARD, Decimal("0")),
+        "credit": by_method.get(Sale.Payment.CREDIT, Decimal("0")),
+        "voided": todays.filter(status=Sale.Status.VOIDED).count(),
+        "tills": tills,
+        "alive": bool(last_seen and (now - last_seen).total_seconds() < 180),
+        "last_seen": last_seen,
+        "shop_open": shop.is_open_at(now),
+        "open_gap": TillGap.objects.filter(ended_at__isnull=True).first(),
+        "gaps_today": TillGap.objects.filter(started_at__gte=start),
+        "events": AuditEvent.objects.select_related("user")[:12],
+    })
+
+
+@admin_required
+def audit_list(request):
+    """Every line of the trail, newest first, filterable by what happened."""
+    events = AuditEvent.objects.select_related("user")
+    action = request.GET.get("action", "")
+    if action in Action.values:
+        events = events.filter(action=action)
+    who = request.GET.get("who", "").strip()
+    if who:
+        events = events.filter(username__icontains=who)
+    day = request.GET.get("day", "")
+    if day:
+        try:
+            d = timezone.datetime.strptime(day, "%Y-%m-%d").date()
+        except ValueError:
+            d = None
+        if d:
+            start = timezone.make_aware(timezone.datetime.combine(d, timezone.datetime.min.time()))
+            events = events.filter(at__gte=start, at__lt=start + timedelta(days=1))
+    page = Paginator(events, 50).get_page(request.GET.get("page"))
+    return render(request, "shop/audit.html", {
+        "page": page, "actions": Action.choices, "action": action,
+        "who": who, "day": day,
+        "qs": "".join(urlencode({k: v}) + "&" for k, v in
+                      (("action", action), ("who", who), ("day", day)) if v),
+    })
+
+
+# ---------------------------------------------------------------------------
+# The phone app - a web app he installs from the browser, nothing to download
+# ---------------------------------------------------------------------------
+def manifest(request):
+    shop = ShopSettings.get()
+    name = shop.company_name
+    response = JsonResponse({
+        "name": name,
+        "short_name": name.split()[0][:12] if name else "Shop",
+        "description": "Your shop on your phone - takings, tills and the audit trail.",
+        "start_url": "/owner/?source=app",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#073626",
+        "theme_color": "#0a5f45",
+        "icons": [
+            {"src": "/static/brand/app-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/brand/app-512.png", "sizes": "512x512", "type": "image/png"},
+            {"src": "/static/brand/app-maskable-512.png", "sizes": "512x512",
+             "type": "image/png", "purpose": "maskable"},
+        ],
+    })
+    response["Content-Type"] = "application/manifest+json"
+    return response
+
+
+@never_cache
+def service_worker(request):
+    """Served from the root rather than /static/, because a service worker can
+    only look after pages at or below the address it was loaded from."""
+    path = django_settings.BASE_DIR / "static" / "js" / "sw.js"
+    response = HttpResponse(path.read_text(encoding="utf-8"),
+                            content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    return response
+
+
+def offline_page(request):
+    """What the phone shows when it has no connection. Cached by the service
+    worker; carries no figures, so nothing stale can be mistaken for today."""
+    return render(request, "shop/offline.html", {})

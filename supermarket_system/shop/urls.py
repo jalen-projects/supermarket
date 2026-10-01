@@ -18,6 +18,14 @@ urlpatterns = [
     path("users/<int:pk>/edit/", views.user_edit, name="user_edit"),
     path("users/<int:pk>/password/", views.user_password, name="user_password"),
 
+    path("till/check-in/", views.till_check_in, name="till_check_in"),
+    path("owner/", views.owner_view, name="owner"),
+    path("audit/", views.audit_list, name="audit"),
+
+    path("manifest.webmanifest", views.manifest, name="manifest"),
+    path("sw.js", views.service_worker, name="service_worker"),
+    path("offline/", views.offline_page, name="offline"),
+
     path("backup/", views.backup, name="backup"),
     path("backup/<str:name>/", views.backup_download, name="backup_download"),
 ]

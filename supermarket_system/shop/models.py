@@ -1,6 +1,10 @@
+from datetime import time
+
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -75,6 +79,30 @@ class ShopSettings(models.Model):
     expiry_warning_days = models.PositiveIntegerField(
         default=30, help_text="Warn this many days before an item expires.")
 
+    # -- the watch on the tills (online) ----------------------------------
+    # The owner's fear, in his own words: a cashier switches the router off
+    # while he is away and sells without the system seeing it. Online, every
+    # open till checks in once a minute; these say when silence is news.
+    opens_at = models.TimeField(
+        "Shop opens at", default=time(7, 0),
+        help_text="A till that is silent before this is not news.")
+    closes_at = models.TimeField(
+        "Shop closes at", default=time(22, 0),
+        help_text="After this, silent tills are expected.")
+    silence_alert_minutes = models.PositiveIntegerField(
+        "Alert after (minutes)", default=10,
+        help_text="Email the owner when no till has reached the system for this "
+                  "many minutes while the shop is open.")
+
+    # The annual hosting, paid to CampusNect Smart Technologies. Set by
+    # setup_maqam from the server's environment and left off the Shop details
+    # form on purpose - see ShopSettingsForm.
+    hosting_paid_until = models.DateField(null=True, blank=True)
+
+    # The trading day whose end-of-day summary has already gone to the owner,
+    # so the five-minute check sends it exactly once.
+    summary_sent_for = models.DateField(null=True, blank=True)
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -95,3 +123,154 @@ class ShopSettings(models.Model):
     def get(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+    @property
+    def hosting_days_left(self):
+        if not self.hosting_paid_until:
+            return None
+        return (self.hosting_paid_until - timezone.localdate()).days
+
+    def is_open_at(self, moment):
+        """Is the shop trading at this moment? Copes with a shop that closes
+        after midnight: 07:00 to 01:00 still means open at half past twelve."""
+        now = timezone.localtime(moment).time()
+        if self.opens_at <= self.closes_at:
+            return self.opens_at <= now < self.closes_at
+        return now >= self.opens_at or now < self.closes_at
+
+
+# ---------------------------------------------------------------------------
+# The audit trail
+# ---------------------------------------------------------------------------
+class AuditEvent(models.Model):
+    """Something the owner would want to be able to ask about later: who did
+    it, when, from which machine, and what it was before.
+
+    Written once and never edited. There is no edit screen and no delete, on
+    purpose - a trail somebody can tidy up is not a trail. The person is kept
+    as a name as well as a link, so the line still reads correctly after a
+    cashier's account has been renamed or removed.
+    """
+
+    class Action(models.TextChoices):
+        SIGN_IN = "SIGN_IN", "Signed in"
+        SIGN_OUT = "SIGN_OUT", "Signed out"
+        SIGN_IN_FAILED = "SIGN_IN_FAILED", "Failed sign-in"
+        SALE_VOIDED = "SALE_VOIDED", "Sale voided"
+        PRICE_CHANGED = "PRICE_CHANGED", "Price changed"
+        PRODUCT_DELETED = "PRODUCT_DELETED", "Product deleted / retired"
+        STOCK_ADJUSTED = "STOCK_ADJUSTED", "Stock adjusted"
+        STOCK_WRITTEN_OFF = "STOCK_WRITTEN_OFF", "Stock written off"
+        STOCK_COUNTED = "STOCK_COUNTED", "Stock take recorded"
+        DRAWER_HANDED_OVER = "DRAWER_HANDED_OVER", "Drawer handed over"
+        USER_CREATED = "USER_CREATED", "User added"
+        USER_CHANGED = "USER_CHANGED", "User changed"
+        PASSWORD_RESET = "PASSWORD_RESET", "Password reset"
+        SETTINGS_CHANGED = "SETTINGS_CHANGED", "Shop details changed"
+        BACKUP_DOWNLOADED = "BACKUP_DOWNLOADED", "Data downloaded"
+        TILLS_SILENT = "TILLS_SILENT", "Tills went silent"
+        TILLS_BACK = "TILLS_BACK", "Tills back online"
+
+    #: What the owner should read first. Shown in red on his phone.
+    SERIOUS = {
+        Action.SIGN_IN_FAILED, Action.SALE_VOIDED, Action.PRICE_CHANGED,
+        Action.PRODUCT_DELETED, Action.STOCK_ADJUSTED, Action.STOCK_WRITTEN_OFF,
+        Action.PASSWORD_RESET, Action.TILLS_SILENT, Action.BACKUP_DOWNLOADED,
+    }
+
+    at = models.DateTimeField(default=timezone.now, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="audit_events")
+    username = models.CharField(max_length=150, blank=True)
+    action = models.CharField(max_length=24, choices=Action.choices, db_index=True)
+    summary = models.CharField(max_length=255)
+    # "field: old -> new", one per line. Plain text, so it reads the same in
+    # an email, on a phone and in the database itself.
+    changes = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    reference = models.CharField(max_length=60, blank=True)
+
+    class Meta:
+        ordering = ["-at", "-id"]
+
+    def __str__(self):
+        return f"{timezone.localtime(self.at):%d %b %H:%M} {self.username} {self.summary}"
+
+    @property
+    def is_serious(self):
+        return self.action in self.SERIOUS
+
+
+# ---------------------------------------------------------------------------
+# The watch on the tills
+# ---------------------------------------------------------------------------
+class Till(models.Model):
+    """One browser used as a till, known by a random id it keeps for itself.
+
+    One row per till, updated on every check-in - not a row per check-in,
+    which would be fourteen hundred rows a day per till saying nothing new.
+    """
+
+    key = models.CharField(max_length=40, unique=True)
+    label = models.CharField(max_length=120, blank=True)
+    # A phone is never a till. Without this, the owner watching his shop from
+    # home would himself keep the alarm quiet while every real till was off.
+    is_phone = models.BooleanField(default=False)
+    last_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+")
+    last_ip = models.GenericIPAddressField(null=True, blank=True)
+    first_seen = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-last_seen"]
+
+    def __str__(self):
+        return self.label or self.key[:8]
+
+    @property
+    def minutes_silent(self):
+        return max(0, int((timezone.now() - self.last_seen).total_seconds() // 60))
+
+
+class TillGap(models.Model):
+    """A stretch of trading hours when no till reached the system.
+
+    Opened by the scheduled check, closed by the first till to check in
+    again - so the end time is exact, not rounded to the next check. Each gap
+    tells the owner twice: when it starts, and when the tills come back,
+    with how long they were gone.
+    """
+
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+    alert_sent_at = models.DateTimeField(null=True, blank=True)
+    back_alert_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"Silent from {timezone.localtime(self.started_at):%d %b %H:%M}"
+
+    @property
+    def is_open(self):
+        return self.ended_at is None
+
+    @property
+    def minutes(self):
+        end = self.ended_at or timezone.now()
+        return max(0, int((end - self.started_at).total_seconds() // 60))
+
+    @property
+    def length_label(self):
+        return minutes_label(self.minutes)
+
+
+def minutes_label(minutes):
+    if minutes < 60:
+        return f"{minutes} minute{'' if minutes == 1 else 's'}"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours} hour{'' if hours == 1 else 's'} {minutes} min"

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Audit trail - {{ shop.company_name }}{% endblock %}
+{% block heading %}Audit trail{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2>Who did what, and when</h2>
+    <div class="spacer"></div>
+    <span class="faint">Written once, never edited. Nobody - not even the owner - can delete a line.</span>
+  </div>
+  <div class="card-body">
+    <form method="get" class="toolbar" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem">
+      <select name="action" class="input select" style="max-width:240px">
+        <option value="">Everything</option>
+        {% for value, label in actions %}
+          <option value="{{ value }}"{% if value == action %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="who" value="{{ who }}" placeholder="Username" class="input" style="max-width:180px">
+      <input type="date" name="day" value="{{ day }}" class="input" style="max-width:180px">
+      <button type="submit" class="btn btn-primary">Show</button>
+      {% if action or who or day %}<a href="{% url 'audit' %}" class="btn">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="card-body tight table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>Who</th><th>What</th><th>Details</th><th>From</th></tr></thead>
+      <tbody>
+      {% for e in page %}
+        <tr>
+          <td style="white-space:nowrap">{{ e.at|date:"d M Y" }} {{ e.at|time:"H:i" }}</td>
+          <td>{{ e.user.display_name|default:e.username|default:"-" }}</td>
+          <td{% if e.is_serious %} style="color:var(--danger);font-weight:600"{% endif %}>{{ e.summary }}</td>
+          <td style="white-space:pre-line;font-size:.85rem;color:var(--ink-soft)">{{ e.changes }}</td>
+          <td style="font-size:.85rem;color:var(--ink-faint)">{{ e.ip_address|default:"" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted" style="padding:1.2rem">Nothing recorded{% if action or who or day %} for that choice{% endif %} yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "partials/pager.html" %}
+{% endblock %}

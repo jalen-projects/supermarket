@@ -6,6 +6,7 @@
   <title>{% block title %}{{ shop.company_name }}{% endblock %}</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% include "partials/app_head.html" %}
   {% block head %}{% endblock %}
 </head>
 <body data-page="{{ request.resolver_match.url_name }}">
@@ -49,6 +50,8 @@
       <a href="{% url 'report_top_products' %}">Best &amp; slow movers</a>
 
       <div class="nav-label">Setup</div>
+      <a href="{% url 'owner' %}" class="{% if request.resolver_match.url_name == 'owner' %}active{% endif %}">My shop on my phone</a>
+      <a href="{% url 'audit' %}" class="{% if request.resolver_match.url_name == 'audit' %}active{% endif %}">Audit trail</a>
       <a href="{% url 'shop_settings' %}" class="{% if request.resolver_match.url_name == 'shop_settings' %}active{% endif %}">Shop details</a>
       <a href="{% url 'user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">Users</a>
       <a href="{% url 'network' %}" data-tour="nav-network" class="{% if request.resolver_match.url_name == 'network' %}active{% endif %}">Other computers</a>
@@ -76,6 +79,20 @@
     </header>
 
     <div class="content">
+      {% if hosting_days_left is not None %}
+        <div class="msg {% if hosting_days_left <= 7 %}msg-error{% else %}msg-warning{% endif %} no-print hosting-notice">
+          {% if hosting_days_left < 0 %}
+            <strong>Your online hosting year ended {{ shop.hosting_paid_until|date:"j F Y" }}.</strong>
+          {% elif hosting_days_left == 0 %}
+            <strong>Your online hosting year ends today.</strong>
+          {% else %}
+            <strong>Your online hosting year ends in {{ hosting_days_left }} day{{ hosting_days_left|pluralize }}</strong>
+            ({{ shop.hosting_paid_until|date:"j F Y" }}).
+          {% endif %}
+          Renewal is UGX 500,000 for the next year, paid to CampusNect Smart Technologies -
+          call or WhatsApp +256 708 646603 (Muwanguzi Benard), or use the payment link we send you.
+        </div>
+      {% endif %}
       {% if messages %}
         <div class="no-print">
           {% for m in messages %}<div class="msg msg-{{ m.tags }}">{{ m }}</div>{% endfor %}
@@ -140,6 +157,11 @@
                    "backup": "{% url 'backup' %}"{% endif %}}'></div>
   {% csrf_token %}
   <script src="{% static 'js/tour.js' %}"></script>
+  {% if request.resolver_match.url_name != 'owner' %}
+  <div hidden id="till-cfg" data-url="{% url 'till_check_in' %}" data-csrf="{{ csrf_token }}"
+       data-user="{{ user.display_name }}"></div>
+  <script src="{% static 'js/till.js' %}"></script>
+  {% endif %}
 {% endif %}
 </body>
 </html>

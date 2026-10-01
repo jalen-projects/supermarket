@@ -2,49 +2,120 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Sign in - {{ shop.company_name }}</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="preload" href="{% static 'fonts/bricolage-grotesque-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  {% include "partials/app_head.html" %}
 </head>
-<body>
-<div class="login-wrap">
-  <div class="login-card">
-    {% if shop.logo %}
-      <img src="{{ shop.logo.url }}" alt="" style="max-height:56px;margin-bottom:1rem">
-    {% else %}
-      <div class="brand-mark">{{ shop.company_name|slice:":2"|upper }}</div>
-    {% endif %}
+<body class="signin">
+{% comment %}
+  The entry to the shop. Two halves: the shop's own green with its mark
+  drawing itself, and the sign-in. Every effect is CSS on elements that are
+  already in place, so the page is whole before - and without - any script.
+  The script at the foot only adds the show-password button, the caps-lock
+  warning and the "signing in" state.
+{% endcomment %}
+<main class="si">
+  <section class="si-brand" aria-label="{{ shop.company_name }}">
+    <div class="si-awning" aria-hidden="true"></div>
+    <div class="si-brand-inner">
+      <svg class="si-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+        <g fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+          <path class="arch arch-1" pathLength="1" d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
+          <path class="arch arch-2" pathLength="1" d="M256 190 A53 53 0 0 1 362 190 V326"/>
+        </g>
+        <rect class="counter" x="140" y="366" width="232" height="22" rx="11" fill="currentColor"/>
+      </svg>
+      <p class="si-name">{{ shop.company_name }}</p>
+      {% if shop.tagline %}<p class="si-tagline">{{ shop.tagline }}</p>{% endif %}
+      <dl class="si-facts">
+        <div><dt>Today</dt><dd>{{ trading_day|date:"l j F" }}</dd></div>
+        <div><dt>Open</dt><dd>{{ shop.opens_at|time:"H:i" }} &ndash; {{ shop.closes_at|time:"H:i" }}</dd></div>
+        {% if shop.address %}<div><dt>Shop</dt><dd>{{ shop.address }}</dd></div>{% endif %}
+      </dl>
+    </div>
+  </section>
 
-    <h1 style="margin-bottom:.15rem">{{ shop.company_name }}</h1>
-    <p class="muted" style="margin-top:0;font-size:.88rem">
-      Sign in to open the till.
-    </p>
+  <section class="si-panel">
+    <div class="si-card">
+      <h1 class="si-title">{{ greeting }}.</h1>
+      <p class="si-lede">Sign in to open the till.</p>
 
-    {% if form.errors %}
-      <div class="msg msg-error">
-        That username and password do not match. Check the caps lock key and try again.
-      </div>
-    {% endif %}
+      {% if form.non_field_errors %}
+        <div class="si-error" role="alert">
+          {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+        </div>
+      {% endif %}
 
-    <form method="post">
-      {% csrf_token %}
-      <div class="field">
-        <label for="id_username">Username</label>
-        <input type="text" name="username" id="id_username" class="input" autofocus required>
-      </div>
-      <div class="field">
-        <label for="id_password">Password</label>
-        <input type="password" name="password" id="id_password" class="input" required>
-      </div>
-      <button type="submit" class="btn btn-primary btn-lg btn-block">Sign in</button>
-      <input type="hidden" name="next" value="{{ next }}">
-    </form>
+      <form method="post" class="si-form" id="signin-form" novalidate>
+        {% csrf_token %}
+        <div class="si-field">
+          <label for="id_username">Username</label>
+          <input type="text" name="username" id="id_username" autocomplete="username"
+                 autocapitalize="none" spellcheck="false" autofocus required
+                 value="{{ form.username.value|default_if_none:'' }}">
+        </div>
+        <div class="si-field">
+          <label for="id_password">Password</label>
+          <div class="si-pass">
+            <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+            <button type="button" class="si-peek" id="peek" hidden aria-pressed="false" aria-controls="id_password">Show</button>
+          </div>
+          <p class="si-caps" id="caps" hidden>Caps lock is on.</p>
+        </div>
+        <button type="submit" class="si-submit" id="signin-submit">
+          <span class="si-submit-label">Sign in</span>
+          <svg class="si-submit-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <input type="hidden" name="next" value="{{ next }}">
+      </form>
 
-    <p class="faint" style="margin-top:1.2rem;margin-bottom:0">
-      This system runs on this computer only. Your sales are not sent anywhere.
-    </p>
-  </div>
-</div>
+      <p class="si-foot">
+        {% if online %}
+          Your shop online. The connection is encrypted, every sign-in is recorded,
+          and wrong passwords lock the account for 15 minutes.
+        {% else %}
+          This system runs on this computer only. Your sales are not sent anywhere.
+        {% endif %}
+      </p>
+    </div>
+    <p class="si-credit">Powered by <a href="https://campusnect.com" target="_blank" rel="noopener">CampusNect Smart Technologies</a></p>
+  </section>
+</main>
+
+<script>
+  (function () {
+    var form = document.getElementById('signin-form');
+    var pass = document.getElementById('id_password');
+    var peek = document.getElementById('peek');
+    var caps = document.getElementById('caps');
+    var submit = document.getElementById('signin-submit');
+
+    peek.hidden = false;
+    peek.addEventListener('click', function () {
+      var show = pass.type === 'password';
+      pass.type = show ? 'text' : 'password';
+      peek.textContent = show ? 'Hide' : 'Show';
+      peek.setAttribute('aria-pressed', show ? 'true' : 'false');
+      pass.focus();
+    });
+
+    function capsCheck(e) {
+      if (e.getModifierState) caps.hidden = !e.getModifierState('CapsLock');
+    }
+    pass.addEventListener('keyup', capsCheck);
+    pass.addEventListener('keydown', capsCheck);
+
+    form.addEventListener('submit', function () {
+      // Show the press was heard. Not disabled before the form has gone, or
+      // the browser drops the submission.
+      setTimeout(function () { submit.disabled = true; }, 0);
+      submit.classList.add('is-busy');
+      submit.querySelector('.si-submit-label').textContent = 'Opening the till';
+    });
+  })();
+</script>
 </body>
 </html>
