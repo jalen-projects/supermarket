@@ -30,3 +30,10 @@ imports/
 
 # Local tooling cache, not part of the shop's system.
 .impeccable/
+
+# The online server's private settings and a shop backup being carried up -
+# see DEPLOY-ONLINE.md. Both hold things that must never be public.
+*.env
+incoming*.sqlite3
+db.sqlite3-wal
+db.sqlite3-shm
