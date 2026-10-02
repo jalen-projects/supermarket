@@ -162,3 +162,19 @@ class StockEntrySheetTests(TestCase):
         from django.urls import reverse
         response = self.client.get(reverse("product_import_template") + "?format=csv")
         self.assertEqual(response["Content-Type"], "text/csv")
+
+
+class BarcodeRequiredTests(TestCase):
+    def test_with_the_rule_on_a_product_without_a_barcode_is_refused(self):
+        records, _ = read_rows(csv_bytes(
+            HEAD,
+            "Fanta 500ml,40822938,beverages,piece,1250,2000,96,03/12/2026,20",
+            "Mikoshi 300ml,,beverages,piece,1000,1500,10,,0",
+            "Rwenzori 1.5l,6.00962E+12,beverages,piece,1541,2500,240,,0"))
+        plans = plan(records, require_barcode=True)
+        self.assertEqual([p.ok for p in plans], [True, False, False])
+        self.assertIn("no barcode", plans[1].errors[0])
+
+    def test_with_the_rule_off_loose_goods_still_come_in(self):
+        records, _ = read_rows(csv_bytes(HEAD, "Tomatoes,,produce,kg,2000,3000,20,,0"))
+        self.assertTrue(plan(records)[0].ok)

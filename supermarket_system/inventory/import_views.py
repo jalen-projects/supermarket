@@ -61,7 +61,9 @@ def product_import(request):
         return redirect("product_import")
 
     add_stock = bool(request.POST.get("add_stock_to_existing"))
-    plans = importer.plan(records, add_stock_to_existing=add_stock)
+    require_barcode = bool(request.POST.get("require_barcode"))
+    plans = importer.plan(records, add_stock_to_existing=add_stock,
+                          require_barcode=require_barcode)
 
     UPLOAD_DIR.mkdir(exist_ok=True)
     token = secrets.token_hex(16)
@@ -72,6 +74,7 @@ def product_import(request):
         "columns": columns,
         "token": token,
         "add_stock": add_stock,
+        "require_barcode": require_barcode,
         "filename": upload.name,
         "total": len(plans),
         "good": [p for p in plans if p.ok],
@@ -90,10 +93,12 @@ def product_import_confirm(request):
 
     path = _token_path(request.POST.get("token", ""))
     add_stock = bool(request.POST.get("add_stock_to_existing"))
+    require_barcode = bool(request.POST.get("require_barcode"))
 
     try:
         records, _ = importer.read_rows(path.read_bytes())
-        plans = importer.plan(records, add_stock_to_existing=add_stock)
+        plans = importer.plan(records, add_stock_to_existing=add_stock,
+                              require_barcode=require_barcode)
         result = importer.apply_plan(plans, user=request.user,
                                      add_stock_to_existing=add_stock)
     except importer.ImportProblem as exc:

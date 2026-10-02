@@ -355,7 +355,7 @@ WEIGHED_UNITS = {"kg", "kilogram", "kilogramme", "g", "gram", "grams", "litre",
 
 
 def plan(records, *, add_stock_to_existing=False, default_unit="Piece",
-         default_category="General"):
+         default_category="General", require_barcode=False):
     """Check every row and describe what the import would do. Writes nothing.
 
     This is what gets read out to the shop owner before committing, so it must
@@ -432,6 +432,11 @@ def plan(records, *, add_stock_to_existing=False, default_unit="Piece",
         if barcode:
             seen_barcodes.setdefault(barcode, row.row)
         row.data["barcode"] = barcode
+        # The owner's rule at MAQAM (2 Oct 2026): nothing goes on the shelf
+        # in the system without a barcode, because a product the scanner
+        # cannot find gets typed in by hand - or sold at the wrong price.
+        if require_barcode and not barcode:
+            row.errors.append("has no barcode - scan it into the Barcode column")
 
         existing = Product.objects.filter(barcode=barcode).first() if barcode else None
         if existing is None:

@@ -34,6 +34,16 @@
       </div>
       <div class="field">
         <label>
+          <input type="checkbox" name="require_barcode" value="1" checked>
+          Every product must have a barcode
+        </label>
+        <p class="muted" style="margin-top:.25rem">
+          On by default: a row with no barcode, or one Excel has damaged, is refused so it
+          can be scanned in first. Untick it only for loose goods that have no barcode.
+        </p>
+      </div>
+      <div class="field">
+        <label>
           <input type="checkbox" name="add_stock_to_existing" value="1">
           Also add the quantities for products that are <strong>already</strong> in the system
         </label>
@@ -56,7 +66,7 @@
         <thead><tr><th>Column</th><th>Needed?</th><th>Notes</th></tr></thead>
         <tbody>
           <tr><td><strong>Name</strong></td><td>Yes</td><td>Also accepted: Product, Item, Description</td></tr>
-          <tr><td>Barcode</td><td>No</td><td>Leave blank for loose goods sold by weight</td></tr>
+          <tr><td>Barcode</td><td>Yes, unless you untick "Every product must have a barcode"</td><td>Scan it straight into the cell. Blank only for loose goods sold by weight</td></tr>
           <tr><td>Category</td><td>No</td><td>Created automatically if it does not exist. Blank becomes "General"</td></tr>
           <tr><td>Unit</td><td>No</td><td>Piece, Kg, Litre, Crate... Blank becomes "Piece"</td></tr>
           <tr><td>Buying price</td><td>No</td><td>What the shop pays. Needed for profit reports</td></tr>
@@ -108,6 +118,7 @@
       {% csrf_token %}
       <input type="hidden" name="token" value="{{ token }}">
       {% if add_stock %}<input type="hidden" name="add_stock_to_existing" value="1">{% endif %}
+      {% if require_barcode %}<input type="hidden" name="require_barcode" value="1">{% endif %}
       <button type="submit" class="btn btn-primary" {% if not good %}disabled{% endif %}>
         Yes - import {{ good|length|intcomma }} product{{ good|length|pluralize }}
       </button>
