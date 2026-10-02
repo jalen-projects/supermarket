@@ -37,18 +37,28 @@ def alert_recipients():
     return list(getattr(settings, "OWNER_ALERT_EMAILS", []) or [])
 
 
-def _send(subject, body):
-    """Email the owner. False if there is nobody to tell or the mail failed -
-    the gap is still recorded either way and shows on his phone."""
+def _send(subject, body, sms=None):
+    """Email the owner - and text him `sms` too, where the shop's SMS channel
+    is set up (online only, drawn from the shop's SMS credit). True if either
+    reached him. The gap is recorded either way and shows on his phone."""
+    emailed = False
     to = alert_recipients()
-    if not to:
-        return False
-    try:
-        send_mail(subject, body, None, to, fail_silently=False)
-        return True
-    except Exception:
-        logger.exception("Owner alert could not be emailed: %s", subject)
-        return False
+    if to:
+        try:
+            send_mail(subject, body, None, to, fail_silently=False)
+            emailed = True
+        except Exception:
+            logger.exception("Owner alert could not be emailed: %s", subject)
+    texted = False
+    if sms:
+        try:
+            from sms.models import Message
+            from sms.services import alert_owner
+            texted = any(m.status in (Message.Status.SENT, Message.Status.TEST)
+                         for m in alert_owner(sms))
+        except Exception:  # a text that failed must never stop the watch
+            logger.exception("Owner alert could not be texted: %s", subject)
+    return emailed or texted
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +136,11 @@ def check_tills(now=None):
     for gap in TillGap.objects.filter(ended_at__isnull=False, alert_sent_at__isnull=False,
                                       back_alert_sent_at__isnull=True):
         _send(f"{shop.company_name}: tills back online",
-              _back_body(shop, gap))
+              _back_body(shop, gap),
+              sms=f"{_short(shop)}: tills back online. Silent "
+                  f"{timezone.localtime(gap.started_at):%H:%M}-"
+                  f"{timezone.localtime(gap.ended_at):%H:%M} ({gap.length_label}). "
+                  f"Check the cash against the cash-up.")
         gap.back_alert_sent_at = now
         gap.save(update_fields=["back_alert_sent_at"])
         done.append(f"told owner tills are back ({gap.length_label})")
@@ -160,7 +174,10 @@ def check_tills(now=None):
            reference=f"gap-{gap.pk}")
     _send(f"{shop.company_name}: no till has been online since "
           f"{timezone.localtime(quiet_since):%H:%M}",
-          _silent_body(shop, gap, now))
+          _silent_body(shop, gap, now),
+          sms=f"{_short(shop)} ALERT: no till has reached the system since "
+              f"{timezone.localtime(quiet_since):%H:%M}. Power, internet or a "
+              f"switched-off router - a call to the shop will tell.")
     # Stamped even if the mail failed: the gap is on his phone screen either
     # way, and the 'back' email still owes him the length of it.
     gap.alert_sent_at = now
@@ -196,6 +213,11 @@ def _back_body(shop, gap):
         f"Every sign-in, voided sale and price change is in the audit trail: "
         f"https://{_host()}/audit/\n\n"
         f"- Sent automatically by your shop system (CampusNect Smart Technologies)")
+
+
+def _short(shop):
+    """'MAQAM' - a text is paid for by the page, so the name goes short."""
+    return (shop.company_name or "Shop").split()[0]
 
 
 def _host():
@@ -276,11 +298,15 @@ def summary_body(shop, s):
 
 def _maybe_send_summary(shop, now):
     day = trading_day_just_ended(shop, now)
-    if day is None or shop.summary_sent_for == day or not alert_recipients():
+    if day is None or shop.summary_sent_for == day or not (
+            alert_recipients() or getattr(settings, "OWNER_ALERT_PHONES", [])):
         return []
     s = day_summary(day)
+    text = (f"{_short(shop)} {s['day']:%a %d %b}: {shop.currency} {s['total']:,.0f} "
+            f"from {s['count']} receipts. Voided: {len(s['voided'])}. "
+            f"Till gaps: {len(s['gaps'])}. Failed sign-ins: {s['failed_sign_ins']}.")
     if _send(f"{shop.company_name}: {s['day']:%a %d %b} - "
-             f"{shop.currency} {s['total']:,.0f} sold", summary_body(shop, s)):
+             f"{shop.currency} {s['total']:,.0f} sold", summary_body(shop, s), sms=text):
         ShopSettings.objects.filter(pk=shop.pk).update(summary_sent_for=day)
         return [f"sent the summary for {day}"]
     return []

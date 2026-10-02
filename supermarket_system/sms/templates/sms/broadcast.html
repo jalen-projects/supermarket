@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Message sent - {{ shop.company_name }}{% endblock %}
+{% block heading %}Message sent{% endblock %}
+{% block topbar %}<a href="{% url 'sms_compose' %}" class="btn btn-primary">Send another</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head"><h2>{{ batch.created_at|date:"d M Y H:i" }} &middot; to {{ batch.audience }}</h2></div>
+  <div class="card-body">
+    <p style="white-space:pre-line;background:var(--line-soft);border-radius:10px;padding:.9rem 1rem;font-family:var(--mono);font-size:.9rem;margin:0">{{ batch.body }}</p>
+  </div>
+  <div class="card-body tight table-wrap">
+    <table>
+      <thead><tr><th>To</th><th>Number</th><th class="num">Pages</th><th>State</th><th>Gateway</th></tr></thead>
+      <tbody>
+      {% for m in rows %}
+        <tr>
+          <td>{{ m.recipient }}</td>
+          <td class="tnum">{{ m.number }}</td>
+          <td class="num">{{ m.pages }}</td>
+          <td>{% if m.status == "SENT" %}<span class="badge badge-ok">Sent</span>{% elif m.status == "TEST" %}<span class="badge">Test</span>{% else %}<span class="badge badge-danger">{{ m.get_status_display }}</span>{% endif %}</td>
+          <td class="muted" style="font-size:.85rem">{{ m.gateway_reply }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p><a href="{% url 'sms_home' %}">Back to SMS</a></p>
+{% endblock %}

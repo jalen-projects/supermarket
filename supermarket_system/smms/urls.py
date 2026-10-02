@@ -3,8 +3,13 @@ from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.static import serve as serve_media
 
+from sms.views import CodeLoginView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # Before shop.urls, so its sign-in (password, then a code) wins.
+    path("", include("sms.urls")),
+    path("login/", CodeLoginView.as_view(), name="login"),
     path("", include("shop.urls")),
     path("inventory/", include("inventory.urls")),
     path("sales/", include("sales.urls")),

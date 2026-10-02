@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}SMS - {{ shop.company_name }}{% endblock %}
+{% block heading %}SMS{% endblock %}
+{% block topbar %}<a href="{% url 'sms_compose' %}" class="btn btn-primary">Send a message</a>{% endblock %}
+{% block content %}
+{% if not configured %}
+  <div class="msg msg-warning">The shop's SMS channel is not set up on the server yet, so nothing
+    can be sent. CampusNect adds it - you can still buy credit now.</div>
+{% elif not live %}
+  <div class="msg msg-warning">Test mode: messages are recorded and priced, but none really
+    leaves. CampusNect switches it on once the channel is checked.</div>
+{% endif %}
+
+<div class="grid grid-3" style="margin-bottom:1.25rem">
+  <div class="stat{% if pages_left <= 20 %} caution{% endif %}">
+    <div class="label">SMS left</div>
+    <div class="value">{{ pages_left|intcomma }} <small>pages</small></div>
+    <div class="note">Worth UGX {{ money_left|intcomma }} at {{ price }} a page</div>
+  </div>
+  <div class="stat">
+    <div class="label">What uses them</div>
+    <div class="value" style="font-size:1.1rem;line-height:1.35">Sign-in codes, till alerts, your messages</div>
+    <div class="note">A code or an alert is one page each</div>
+  </div>
+  <div class="stat">
+    <div class="label">Price</div>
+    <div class="value">UGX {{ price }} <small>a page</small></div>
+    <div class="note">160 letters to a page; longer messages use more</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Buy SMS credit</h2></div>
+  <div class="card-body">
+    <div class="grid grid-4">
+      {% for b in bundles %}
+        <form method="post" action="{% url 'sms_buy' %}" class="stat" style="display:flex;flex-direction:column;gap:.5rem">
+          {% csrf_token %}
+          <input type="hidden" name="amount" value="{{ b.amount }}">
+          <div class="label">UGX {{ b.amount|intcomma }}</div>
+          <div class="value">{{ b.pages|intcomma }} <small>pages</small></div>
+          <button type="submit" class="btn btn-primary btn-block"{% if not can_pay %} disabled{% endif %}>Buy - Mobile Money or card</button>
+        </form>
+      {% endfor %}
+    </div>
+    <p class="muted" style="margin:.9rem 0 0;font-size:.88rem">
+      {% if not can_pay %}Online payment is not switched on yet. {% endif %}
+      You can also pay by Mobile Money to +256 708 646603 (Muwanguzi Benard, CampusNect
+      Smart Technologies) and send the message - CampusNect adds the credit for you.</p>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><h2>Credit bought</h2></div>
+    <div class="card-body tight table-wrap">
+      <table>
+        <thead><tr><th>When</th><th>How</th><th class="num">UGX</th><th class="num">Pages</th><th>State</th></tr></thead>
+        <tbody>
+        {% for t in topups %}
+          <tr>
+            <td class="tnum">{{ t.created_at|date:"d M Y H:i" }}</td>
+            <td>{{ t.get_method_display }}</td>
+            <td class="num">{{ t.amount|intcomma }}</td>
+            <td class="num">{{ t.pages|intcomma }}</td>
+            <td>{% if t.status == "PAID" %}<span class="badge badge-ok">Paid</span>{% elif t.status == "PENDING" %}<span class="badge badge-warn">Waiting</span>{% else %}<span class="badge badge-danger">Not paid</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="muted" style="padding:1.2rem">No credit bought yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Messages sent</h2></div>
+    <div class="card-body tight table-wrap">
+      <table>
+        <thead><tr><th>When</th><th>To</th><th>What</th><th class="num">Pages</th><th>State</th></tr></thead>
+        <tbody>
+        {% for m in recent %}
+          <tr>
+            <td class="tnum">{{ m.created_at|date:"d M H:i" }}</td>
+            <td>{{ m.recipient|default:m.number }}</td>
+            <td>{% if m.broadcast %}<a href="{% url 'sms_broadcast' m.broadcast.pk %}">{{ m.get_kind_display }}</a>{% else %}{{ m.get_kind_display }}{% endif %}</td>
+            <td class="num">{{ m.pages }}</td>
+            <td>{% if m.status == "SENT" %}<span class="badge badge-ok">Sent</span>{% elif m.status == "TEST" %}<span class="badge">Test</span>{% else %}<span class="badge badge-danger" title="{{ m.gateway_reply }}">{{ m.get_status_display }}</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="muted" style="padding:1.2rem">Nothing sent yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

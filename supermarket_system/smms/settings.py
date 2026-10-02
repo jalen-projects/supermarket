@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     "inventory",
     "sales",
     "reports",
+    "sms",
 ]
 
 MIDDLEWARE = [
@@ -258,3 +259,27 @@ OWNER_ALERT_EMAILS = [e.strip() for e in
 
 # The address written into the alert emails' links.
 PUBLIC_HOSTNAME = os.environ.get("SMMS_HOSTNAME", "")
+
+
+# ---------------------------------------------------------------------------
+# SMS - the shop's own EGO channel (see sms/). ONLINE ONLY.
+# ---------------------------------------------------------------------------
+# All of it from the server's environment: this repository is public, and the
+# channel's API key would let anybody text in the shop's name on its credit.
+# Offline, on the shop PC, there is no SMS at all and signing in is exactly as
+# it always was.
+SMS_USERNAME = os.environ.get("MAQAM_SMS_USERNAME", "").strip()
+SMS_KEY = os.environ.get("MAQAM_SMS_KEY", "").strip()
+SMS_SENDER = os.environ.get("MAQAM_SMS_SENDER", "").strip()
+# Until this is 1 every message is recorded and costed, and nothing leaves.
+SMS_LIVE = os.environ.get("MAQAM_SMS_LIVE", "0") == "1"
+SMS_CONFIGURED = ONLINE and bool(SMS_USERNAME and SMS_KEY and SMS_SENDER)
+# What one page costs the shop, in UGX - the same as St Lucia and Team.
+SMS_PRICE = int(os.environ.get("MAQAM_SMS_PRICE", "45") or 45)
+# The owner's phone(s) for the till alerts, comma-separated.
+OWNER_ALERT_PHONES = [p.strip() for p in
+                      os.environ.get("MAQAM_ALERT_PHONE", "").split(",") if p.strip()]
+# Buying SMS bundles online (Flutterwave - CampusNect's account).
+FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "")
+FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "")
+FLW_SECRET_HASH = os.environ.get("FLW_SECRET_HASH", "")
