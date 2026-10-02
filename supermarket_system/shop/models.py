@@ -170,12 +170,16 @@ class AuditEvent(models.Model):
         BACKUP_DOWNLOADED = "BACKUP_DOWNLOADED", "Data downloaded"
         TILLS_SILENT = "TILLS_SILENT", "Tills went silent"
         TILLS_BACK = "TILLS_BACK", "Tills back online"
+        OTP_SENT = "OTP_SENT", "Sign-in code sent"
+        OTP_FAILED = "OTP_FAILED", "Wrong sign-in code"
+        OTP_PASSED = "OTP_PASSED", "Sign-in code accepted"
 
     #: What the owner should read first. Shown in red on his phone.
     SERIOUS = {
         Action.SIGN_IN_FAILED, Action.SALE_VOIDED, Action.PRICE_CHANGED,
         Action.PRODUCT_DELETED, Action.STOCK_ADJUSTED, Action.STOCK_WRITTEN_OFF,
         Action.PASSWORD_RESET, Action.TILLS_SILENT, Action.BACKUP_DOWNLOADED,
+        Action.OTP_FAILED,
     }
 
     at = models.DateTimeField(default=timezone.now, db_index=True)
