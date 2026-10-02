@@ -215,7 +215,7 @@ body.ow {
   background: var(--b-100);
 }
 .ow-install p { margin: 0 0 .8rem; }
-.ow-ios { margin: 0; font-size: .9rem; color: var(--ink-soft); }
+.ow-ios { margin: .6rem 0 0; font-size: .9rem; color: var(--ink-soft); }
 
 .ow-nav { display: grid; gap: .25rem; padding-top: .5rem; border-top: 1px solid #ebe3de; }
 .ow-nav a, .ow-nav button {

@@ -106,11 +106,19 @@
     {% endif %}
   </section>
 
-  <section class="ow-install" id="install" hidden>
+  {% comment %}
+    Always offered, never only when the browser volunteers it: Chrome stays
+    quiet for days after an app has been removed, and a box that only appears
+    when Chrome is in the mood looks like a broken button. The one-tap button
+    shows when the browser allows it; the menu steps are there otherwise. It
+    disappears once the page is opened as the installed app.
+  {% endcomment %}
+  <section class="ow-install" id="install">
     <p><strong>Put this on your home screen.</strong> It opens like an app, straight to this page.</p>
-    <button type="button" class="si-submit" id="install-btn">Install the app</button>
+    <button type="button" class="si-submit" id="install-btn" hidden>Install the app</button>
+    <p class="ow-ios" id="android-hint"><strong>Android:</strong> tap the <strong>&#8942;</strong> menu at the top right, then <strong>Install app</strong> (or <strong>Add to Home screen</strong>).</p>
+    <p class="ow-ios" id="ios-hint"><strong>iPhone:</strong> tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
   </section>
-  <p class="ow-ios" id="ios-hint" hidden>To add it to your iPhone: tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
 
   <nav class="ow-nav">
     <a href="{% url 'dashboard' %}">Open the full system</a>
@@ -128,21 +136,28 @@
     }, 60000);
 
     var box = document.getElementById('install');
+    var btn = document.getElementById('install-btn');
+    var android = document.getElementById('android-hint');
+    var ios = document.getElementById('ios-hint');
+    var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (standalone) { box.hidden = true; }
+    // Show only the steps for this phone.
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) { android.hidden = true; }
+    else if (/Android/.test(navigator.userAgent)) { ios.hidden = true; }
+
     var deferred = null;
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault();
       deferred = e;
-      box.hidden = false;
+      btn.hidden = false;
+      android.hidden = true;
     });
-    document.getElementById('install-btn').addEventListener('click', function () {
+    btn.addEventListener('click', function () {
       if (!deferred) return;
       deferred.prompt();
-      deferred.userChoice.finally(function () { box.hidden = true; deferred = null; });
+      deferred.userChoice.finally(function () { btn.hidden = true; deferred = null; });
     });
-    var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !standalone) {
-      document.getElementById('ios-hint').hidden = false;
-    }
+    window.addEventListener('appinstalled', function () { box.hidden = true; });
   })();
 </script>
 </body>
