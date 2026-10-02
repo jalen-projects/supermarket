@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -27,12 +28,13 @@ from .models import (Category, Product, Purchase, StockBatch, StockCount, StockM
 # ---------------------------------------------------------------------------
 # Products
 # ---------------------------------------------------------------------------
-@admin_required
-def product_list(request):
-    q = request.GET.get("q", "").strip()
-    category = request.GET.get("category", "")
-    view = request.GET.get("view", "")
-
+def _filtered_products(params):
+    """The products the list shows for these search settings - shared by the
+    list and by bulk delete, so "delete all in this list" means exactly the
+    products on screen (every page of them), never more."""
+    q = params.get("q", "").strip()
+    category = params.get("category", "")
+    view = params.get("view", "")
     products = Product.objects.select_related("category", "unit").with_stock()
     if q:
         products = products.filter(Q(name__icontains=q) | Q(barcode__icontains=q))
@@ -42,12 +44,79 @@ def product_list(request):
         products = products.filter(is_active=False)
     else:
         products = products.filter(is_active=True)
-
     rows = list(products)
     if view == "low":
         rows = [p for p in rows if p.stock <= p.effective_reorder_level]
     elif view == "out":
         rows = [p for p in rows if p.stock <= 0]
+    return rows
+
+
+def _can_erase(product):
+    """True when the only thing that ever happened to this product is its
+    opening stock - which is all an import or a stock capture leaves behind.
+    Such a product can go for good, opening stock and all, so a list imported
+    wrongly can simply be imported again. Anything sold, delivered, counted or
+    adjusted is history, and is taken off sale instead (see product_delete)."""
+    if (product.sale_items.exists() or product.purchase_items.exists()
+            or product.count_lines.exists()):
+        return False
+    return not product.movements.exclude(kind=StockMovement.Kind.OPENING).exists()
+
+
+@admin_required
+def product_bulk_delete(request):
+    """Delete many products at once - the ticked ones, or every product in the
+    list as it is searched. Two steps: this screen says how many will be
+    deleted and how many only taken off sale, and nothing happens until it is
+    confirmed."""
+    if request.method != "POST":
+        return redirect("product_list")
+    if request.POST.get("scope") == "all":
+        products = _filtered_products(request.POST)
+    else:
+        ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
+        products = list(Product.objects.filter(pk__in=ids).with_stock().order_by("name"))
+    if not products:
+        messages.info(request, "Tick the products to delete first.")
+        return redirect("product_list")
+
+    erase = [p for p in products if _can_erase(p)]
+    retire = [p for p in products if p not in erase and p.is_active]
+
+    if request.POST.get("confirm") != "yes":
+        return render(request, "inventory/product_bulk_delete.html", {
+            "products": products, "erase": erase, "retire": retire,
+            "post": request.POST,
+        })
+
+    with transaction.atomic():
+        for p in retire:
+            p.is_active = False
+            p.save(update_fields=["is_active"])
+        erased_names = [p.name for p in erase]
+        Product.objects.filter(pk__in=[p.pk for p in erase]).delete()
+    audit.record(
+        AuditEvent.Action.PRODUCT_DELETED,
+        f"Bulk: deleted {len(erase)}, took {len(retire)} off sale",
+        request=request, reference="bulk",
+        changes="Deleted: " + ", ".join(erased_names)[:4000] +
+                ("\nTaken off sale: " + ", ".join(p.name for p in retire)[:2000] if retire else ""))
+    parts = []
+    if erase:
+        parts.append(f"{len(erase)} deleted for good")
+    if retire:
+        parts.append(f"{len(retire)} taken off sale (they have sales or deliveries to keep)")
+    messages.success(request, "Done: " + "; ".join(parts) + ".")
+    return redirect("product_list")
+
+
+@admin_required
+def product_list(request):
+    q = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "")
+    view = request.GET.get("view", "")
+    rows = _filtered_products(request.GET)
 
     paginator = Paginator(rows, 40)
     page = paginator.get_page(request.GET.get("page"))

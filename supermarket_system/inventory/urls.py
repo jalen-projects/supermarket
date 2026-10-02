@@ -15,6 +15,7 @@ urlpatterns = [
     path("products/<int:pk>/", views.product_detail, name="product_detail"),
     path("products/<int:pk>/edit/", views.product_edit, name="product_edit"),
     path("products/<int:pk>/delete/", views.product_delete, name="product_delete"),
+    path("products/delete-many/", views.product_bulk_delete, name="product_bulk_delete"),
     path("products/<int:pk>/restore/", views.product_restore, name="product_restore"),
     path("products/<int:pk>/adjust/", views.product_adjust, name="product_adjust"),
     path("lookup/", views.product_lookup, name="product_lookup"),

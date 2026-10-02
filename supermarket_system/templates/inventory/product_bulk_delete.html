@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Delete products - {{ shop.company_name }}{% endblock %}
+{% block heading %}Delete {{ products|length }} product{{ products|length|pluralize }}?{% endblock %}
+
+{% block content %}
+{% comment %}
+  The second step of deleting many products. Says plainly, before anything
+  happens, how many go for good and how many are only taken off sale because
+  they have sales or deliveries that past receipts and profit still depend on.
+{% endcomment %}
+<div class="card">
+  <div class="card-body">
+    {% if erase %}
+      <div class="msg msg-error">
+        <strong>{{ erase|length }} product{{ erase|length|pluralize }} will be deleted for good</strong>,
+        with {{ erase|length|pluralize:"its,their" }} opening stock. Nothing was ever sold, delivered
+        or counted against {{ erase|length|pluralize:"it,them" }}, so nothing is lost - this is the way
+        to clear a list that was imported wrongly and import it again.
+      </div>
+    {% endif %}
+    {% if retire %}
+      <div class="msg msg-warning">
+        <strong>{{ retire|length }} product{{ retire|length|pluralize }} will only be taken off sale</strong>,
+        because {{ retire|length|pluralize:"it has,they have" }} sales, deliveries or stock adjustments.
+        {{ retire|length|pluralize:"It disappears,They disappear" }} from the till and this list, but
+        every past receipt still adds up. Bring one back any time from <em>Not for sale</em>.
+      </div>
+    {% endif %}
+    {% if not erase and not retire %}
+      <p>These products are already off sale. There is nothing more to do.</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'product_bulk_delete' %}" style="margin-top:1rem">
+      {% csrf_token %}
+      <input type="hidden" name="confirm" value="yes">
+      <input type="hidden" name="scope" value="{{ post.scope }}">
+      <input type="hidden" name="q" value="{{ post.q }}">
+      <input type="hidden" name="category" value="{{ post.category }}">
+      <input type="hidden" name="view" value="{{ post.view }}">
+      {% if post.scope != "all" %}
+        {% for p in products %}<input type="hidden" name="ids" value="{{ p.pk }}">{% endfor %}
+      {% endif %}
+      {% if erase or retire %}
+        <button type="submit" class="btn btn-danger">Yes - delete {{ erase|length }}{% if retire %}, take {{ retire|length }} off sale{% endif %}</button>
+      {% endif %}
+      <a href="{% url 'product_list' %}" class="btn">No, go back</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>The products</h2></div>
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Barcode</th><th class="num">Stock</th><th>What happens</th></tr></thead>
+        <tbody>
+        {% for p in products %}
+          <tr>
+            <td>{{ p.name }}</td>
+            <td class="mono muted">{{ p.barcode|default:"-" }}</td>
+            <td class="num">{{ p.stock|floatformat:"-2" }}</td>
+            <td>{% if p in erase %}<span class="badge badge-danger">Deleted</span>{% elif p in retire %}<span class="badge">Taken off sale</span>{% else %}<span class="muted">Already off sale</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

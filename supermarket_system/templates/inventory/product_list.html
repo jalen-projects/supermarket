@@ -31,14 +31,32 @@
   {% if q or selected_category %}<a href="?" class="btn">Clear</a>{% endif %}
 </form>
 
+{% comment %}
+  Deleting many at once: tick some, or take everything in this list (every
+  page of it, as searched). Either way the next screen says what will be
+  deleted and what only taken off sale - nothing happens until confirmed.
+{% endcomment %}
+<form method="post" action="{% url 'product_bulk_delete' %}" id="bulk-form">
+{% csrf_token %}
+<input type="hidden" name="q" value="{{ q }}">
+<input type="hidden" name="category" value="{{ selected_category }}">
+<input type="hidden" name="view" value="{{ view }}">
 <div class="card">
-  <div class="card-head"><h2>{{ total_products }} product{{ total_products|pluralize }}</h2></div>
+  <div class="card-head">
+    <h2>{{ total_products }} product{{ total_products|pluralize }}</h2>
+    {% if page.object_list %}
+    <div class="spacer"></div>
+    <button type="submit" name="scope" value="selected" class="btn btn-sm btn-danger-ghost">Delete ticked</button>
+    <button type="submit" name="scope" value="all" class="btn btn-sm btn-danger-ghost">Delete all {{ total_products }} in this list</button>
+    {% endif %}
+  </div>
   <div class="card-body tight">
     {% if page.object_list %}
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
+            <th style="width:2.2rem"><input type="checkbox" id="tick-all" aria-label="Tick every product on this page" hidden></th>
             <th>Product</th><th>Barcode</th><th>Category</th>
             <th class="num">Stock</th><th class="num">Buying</th><th class="num">Selling</th>
             <th class="num">Profit</th><th>Nearest expiry</th><th></th>
@@ -47,6 +65,7 @@
         <tbody>
         {% for p in page.object_list %}
           <tr {% if p.stock <= 0 %}class="row-danger"{% elif p.stock <= p.effective_reorder_level %}class="row-warn"{% endif %}>
+            <td><input type="checkbox" name="ids" value="{{ p.pk }}" class="tick" aria-label="Tick {{ p.name }}"></td>
             <td>
               <a href="{% url 'product_detail' p.pk %}"><strong>{{ p.name }}</strong></a>
               {% if not p.is_active %}<span class="badge">not for sale</span>{% endif %}
@@ -77,4 +96,16 @@
     {% endif %}
   </div>
 </div>
+</form>
+<script>
+  // "Tick all on this page" - a convenience only; every box works without it.
+  (function () {
+    var all = document.getElementById('tick-all');
+    if (!all) return;
+    all.hidden = false;
+    all.addEventListener('change', function () {
+      document.querySelectorAll('#bulk-form .tick').forEach(function (b) { b.checked = all.checked; });
+    });
+  })();
+</script>
 {% endblock %}
