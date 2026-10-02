@@ -1,0 +1,75 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sign-in code - {{ shop.company_name }}</title>
+  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  {% include "partials/app_head.html" %}
+  <style>
+    .si-code input { font-family: var(--mono); font-size: 1.6rem; letter-spacing: .5em; text-align: center; }
+    .si-sentto { margin: -.6rem 0 1.25rem; color: var(--ink-soft); font-size: .95rem; }
+    .si-again { margin-top: .9rem; display: flex; gap: .75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .si-again button { background: none; border: 0; padding: .4rem 0; color: var(--b-800); font: 600 .92rem/1 var(--ui); cursor: pointer; text-decoration: underline; text-underline-offset: .2em; }
+    .si-again a { font-size: .92rem; }
+  </style>
+</head>
+<body class="signin">
+{% comment %}
+  The second step of signing in online. The same receipt as the sign-in page;
+  the code arrives by SMS (and, for the owner, by email too) - see sms/signin.py.
+{% endcomment %}
+<main class="si">
+  <picture class="si-photo">
+    <source media="(max-width: 860px)" srcset="{% static 'img/shopper-portrait-900.webp' %}" type="image/webp">
+    <source media="(max-width: 860px)" srcset="{% static 'img/shopper-portrait-900.jpg' %}">
+    <source srcset="{% static 'img/shopper-1440.webp' %}" type="image/webp">
+    <img src="{% static 'img/shopper-1440.jpg' %}" alt="" decoding="async">
+  </picture>
+
+  <section class="si-brand" aria-label="{{ shop.company_name }}">
+    <p class="si-name">{{ shop.company_name }}</p>
+    {% if shop.tagline %}<p class="si-tagline">{{ shop.tagline }}</p>{% endif %}
+  </section>
+
+  <section class="si-panel">
+    <div class="si-receipt">
+      <h1 class="si-title">Enter your code.</h1>
+      <p class="si-lede">{{ who.display_name }}, one more step.</p>
+      <p class="si-sentto">
+        {% if row.via_owner %}
+          The code could not be sent to your phone, so it went to the owner. Ask the owner for it.
+        {% else %}
+          We sent a 6-digit code by {{ row.sent_to }}.
+        {% endif %}
+      </p>
+
+      {% if error %}<div class="si-error" role="alert">{{ error }}</div>{% endif %}
+
+      <form method="post" class="si-form" novalidate>
+        {% csrf_token %}
+        <div class="si-field si-code">
+          <label for="id_code">Sign-in code</label>
+          <input type="text" name="code" id="id_code" inputmode="numeric" pattern="[0-9]*"
+                 autocomplete="one-time-code" maxlength="6" autofocus required>
+        </div>
+        <button type="submit" class="si-submit">
+          <span class="si-submit-label">Open the till</span>
+          <svg class="si-submit-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </form>
+      <form method="post" class="si-again">
+        {% csrf_token %}
+        <button type="submit" name="resend" value="1">Send me a new code</button>
+        <a href="{% url 'login' %}">Start again</a>
+      </form>
+
+      <p class="si-foot">The code works once, for 5 minutes. Never give it to anybody who
+        calls or texts you asking for it - the shop will never ask.</p>
+    </div>
+    <p class="si-credit">Powered by <a href="https://campusnect.com" target="_blank" rel="noopener">CampusNect Smart Technologies</a></p>
+  </section>
+</main>
+</body>
+</html>

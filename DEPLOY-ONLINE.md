@@ -167,6 +167,68 @@ systemctl restart maqam
 The restart is not optional: the templates are cached in memory, so a
 `git pull` alone leaves the old screens showing.
 
+## SMS: sign-in codes, texted alerts, his own messages — once
+
+The shop has its own channel on EGO SMS, like St Lucia and Team. With it set
+up, everybody signing in online gets a 6-digit code after their password
+(cashiers by SMS; the owner by SMS **and** email), the till alerts and the
+nightly summary are texted to him as well as emailed, and he can buy SMS
+credit and text his top customers or his cashiers from **SMS & messages**.
+Until the channel is set up, signing in is the password alone, as before.
+
+**1. Add these lines** to `/home/maqam/maqam.env` (`nano /home/maqam/maqam.env`):
+
+```
+MAQAM_SMS_USERNAME=
+MAQAM_SMS_KEY=
+MAQAM_SMS_SENDER=
+MAQAM_SMS_LIVE=0
+MAQAM_ALERT_PHONE=
+FLW_PUBLIC_KEY=
+FLW_SECRET_KEY=
+FLW_SECRET_HASH=
+```
+
+- `MAQAM_SMS_USERNAME` / `MAQAM_SMS_KEY` — the **API** username and key of the
+  MAQAM channel in the EGO dashboard (not the website login — the wrong pair is
+  answered "That user does not exist").
+- `MAQAM_SMS_SENDER` — the sender ID EGO approved for that channel, e.g. `MAQAM`.
+- `MAQAM_SMS_LIVE` — leave `0` first: every text is recorded and priced, none
+  leaves, and sign-in codes are written to `journalctl -u maqam` so you can
+  test. Change to `1` once a test sign-in works.
+- `MAQAM_ALERT_PHONE` — his mobile for the till alerts, e.g. `07XXXXXXXX`
+  (add `,` and yours for copies).
+- `FLW_*` — the same three Flutterwave lines as in `/home/campusnect/app/.env`
+  (they let him buy SMS credit with Mobile Money or card). To copy them:
+
+```bash
+grep -E '^FLW_(PUBLIC_KEY|SECRET_KEY|SECRET_HASH)=' /home/campusnect/app/.env >> /home/maqam/maqam.env
+```
+
+  then delete the empty `FLW_` lines above them in `nano`.
+
+**2. Before switching on:** every cashier needs their mobile number on their
+account (*Users* → edit), or they cannot sign in online. The owner's account
+should have his email and phone.
+
+**3. Apply it** — run the "Updating it later" block above (it migrates and
+restarts).
+
+**Credit paid outside the website** (cash, or Mobile Money to +256 708 646603):
+
+```bash
+cd /home/maqam/app/supermarket_system
+sudo -u maqam env SMMS_ENV_FILE=/home/maqam/maqam.env /home/maqam/venv/bin/python manage.py sms_credit 20000 --ref "MoMo 1234567890"
+```
+
+The reference must be the payment's own, so the same money cannot be added
+twice. `... manage.py sms_credit --balance` shows what is left.
+
+**When the credit runs out:** the owner still gets his code by email. A
+cashier's code goes to the owner's email instead, and the cashier is told to
+ask him for it — the till keeps selling, nobody gets in without a code, and
+he learns at once that it is time to top up.
+
 ## When he renews the hosting
 
 Change `MAQAM_HOSTING_PAID_UNTIL` in `/home/maqam/maqam.env` (`nano`), then:

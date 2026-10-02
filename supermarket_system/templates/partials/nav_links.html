@@ -32,6 +32,7 @@
       <div class="nav-label">Setup</div>
       <a href="{% url 'owner' %}" class="{% if request.resolver_match.url_name == 'owner' %}active{% endif %}">My shop on my phone</a>
       <a href="{% url 'audit' %}" class="{% if request.resolver_match.url_name == 'audit' %}active{% endif %}">Audit trail</a>
+      {% if online %}<a href="{% url 'sms_home' %}" class="{% if request.resolver_match.url_name == 'sms_home' or request.resolver_match.url_name == 'sms_compose' or request.resolver_match.url_name == 'sms_broadcast' %}active{% endif %}">SMS &amp; messages</a>{% endif %}
       <a href="{% url 'shop_settings' %}" class="{% if request.resolver_match.url_name == 'shop_settings' %}active{% endif %}">Shop details</a>
       <a href="{% url 'user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">Users</a>
       <a href="{% url 'network' %}" data-tour="nav-network" class="{% if request.resolver_match.url_name == 'network' %}active{% endif %}">Other computers</a>

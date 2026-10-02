@@ -33,18 +33,28 @@ class GuardedAuthenticationForm(AuthenticationForm):
     }
 
     def clean(self):
-        if getattr(settings, "ONLINE", False):
-            from .audit import client_ip
-            since = timezone.now() - FAILURE_WINDOW
-            failures = AuditEvent.objects.filter(
-                action=AuditEvent.Action.SIGN_IN_FAILED, at__gte=since)
-            name = (self.data.get("username") or "")[:60]
-            ip = client_ip(self.request)
-            if (failures.filter(reference=name).count() >= MAX_FAILURES_PER_NAME
-                    or (ip and failures.filter(ip_address=ip).count()
-                        >= MAX_FAILURES_PER_ADDRESS)):
-                raise forms.ValidationError(self.error_messages["locked"], code="locked")
+        if is_locked_out(self.request, self.data.get("username") or ""):
+            raise forms.ValidationError(self.error_messages["locked"], code="locked")
         return super().clean()
+
+
+def is_locked_out(request, username):
+    """Too many wrong passwords - or wrong sign-in codes - lately, for this
+    name or from this machine. Online only; offline there is nobody outside
+    the shop to guess. A wrong code counts the same as a wrong password, or
+    the code step would be a fresh set of five guesses."""
+    if not getattr(settings, "ONLINE", False):
+        return False
+    from .audit import client_ip
+    since = timezone.now() - FAILURE_WINDOW
+    failures = AuditEvent.objects.filter(
+        action__in=[AuditEvent.Action.SIGN_IN_FAILED, AuditEvent.Action.OTP_FAILED],
+        at__gte=since)
+    name = (username or "")[:60]
+    ip = client_ip(request)
+    return (failures.filter(reference=name).count() >= MAX_FAILURES_PER_NAME
+            or bool(ip and failures.filter(ip_address=ip).count()
+                    >= MAX_FAILURES_PER_ADDRESS))
 
 
 class BootstrapMixin:

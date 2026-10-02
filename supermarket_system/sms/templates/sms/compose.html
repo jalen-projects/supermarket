@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Send a message - {{ shop.company_name }}{% endblock %}
+{% block heading %}Send a message{% endblock %}
+{% block topbar %}<a href="{% url 'sms_home' %}" class="btn">SMS credit: {{ pages_left|intcomma }} pages</a>{% endblock %}
+{% block content %}
+{% comment %}
+  Pick who, write it, see what it costs, then send. Two steps on purpose: a
+  message to fifty customers cannot be taken back, so it is previewed with its
+  price before it goes.
+{% endcomment %}
+<form method="post" id="compose">
+  {% csrf_token %}
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-head"><h2>The message</h2></div>
+      <div class="card-body">
+        <textarea name="body" id="body" class="input" rows="6" maxlength="918"
+                  placeholder="e.g. Fresh Blue Band in stock this week at 6,000. Thank you for shopping at MAQAM!">{{ body }}</textarea>
+        <p class="muted" style="margin:.5rem 0 0;font-size:.88rem" id="count">
+          {{ body|length }} letters &middot; {{ per }} page{{ per|pluralize }} each</p>
+        <p class="muted" style="margin:.35rem 0 0;font-size:.85rem">160 letters is one page. Curly quotes
+          and emoji make every page 70 letters, so plain text goes further.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Who gets it</h2></div>
+      <div class="card-body">
+        <h3 style="margin-top:0">Your cashiers</h3>
+        {% for u in cashiers %}
+          <label style="display:flex;gap:.5rem;align-items:center;padding:.25rem 0">
+            <input type="checkbox" name="cashier" value="{{ u.pk }}"{% if u.pk|stringformat:"s" in chosen_u %} checked{% endif %}>
+            {{ u.display_name }} <span class="faint tnum">{{ u.phone }}</span></label>
+        {% empty %}
+          <p class="muted">No cashier has a phone number yet - add them under Users.</p>
+        {% endfor %}
+
+        <h3>Top customers</h3>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem">
+          <span class="muted">The top</span>
+          <input type="number" name="top" value="{{ top }}" min="1" max="500" class="input" style="width:5rem"
+                 form="rank">
+          <span class="muted">by spending in the last</span>
+          <input type="number" name="days" value="{{ days }}" min="1" max="365" class="input" style="width:5rem"
+                 form="rank">
+          <span class="muted">days</span>
+          <button type="submit" class="btn btn-sm" form="rank">Show</button>
+        </div>
+        {% for c in customers %}
+          <label style="display:flex;gap:.5rem;align-items:center;padding:.25rem 0">
+            <input type="checkbox" name="customer" value="{{ c.pk }}"{% if c.pk|stringformat:"s" in chosen_c or not chosen_c and not chosen_u and not body %} checked{% endif %}>
+            {{ c.name }} <span class="faint tnum">UGX {{ c.spent|floatformat:0|intcomma }} &middot; {{ c.visits }} visit{{ c.visits|pluralize }}</span></label>
+        {% empty %}
+          <p class="muted">No customer with a phone number has bought anything in that time.
+            Customers are added at the till when a sale is put on their name.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if preview %}
+    <div class="card">
+      <div class="card-head"><h2>Check before it goes</h2></div>
+      <div class="card-body">
+        <p style="white-space:pre-line;background:var(--line-soft);border-radius:10px;padding:.9rem 1rem;font-family:var(--mono);font-size:.9rem;margin-top:0">{{ body }}</p>
+        <p>To <strong>{{ valid|length }}</strong> {{ valid|length|pluralize:"person,people" }}
+          &middot; {{ total_pages }} page{{ total_pages|pluralize }} &middot;
+          <strong>UGX {{ total_cost|intcomma }}</strong> of credit. {{ pages_left|intcomma }} pages left now.</p>
+        {% if invalid %}<p class="muted">Not sent (no usable Ugandan mobile number): {{ invalid|join:", " }}.</p>{% endif %}
+        {% if not live %}<p class="muted">Test mode - it will be recorded but not really sent.</p>{% endif %}
+        <button type="submit" name="step" value="send" class="btn btn-primary btn-lg">Send now</button>
+      </div>
+    </div>
+  {% else %}
+    <div class="btn-row"><button type="submit" name="step" value="preview" class="btn btn-primary btn-lg">Check the cost</button></div>
+  {% endif %}
+</form>
+<form method="get" id="rank"></form>
+
+<script>
+  // The page counter, live as he types - the same rule the server charges by.
+  (function () {
+    var box = document.getElementById('body'), out = document.getElementById('count');
+    var gsm = /^[@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-.\/0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\^{}\\\[~\]|€]*$/;
+    function pages(t) {
+      if (!t) return 0;
+      var plain = gsm.test(t), n = plain ? t.replace(/[\^{}\\\[~\]|€]/g, '..').length : t.length;
+      var one = plain ? 160 : 70, many = plain ? 153 : 67;
+      return n <= one ? 1 : Math.ceil(n / many);
+    }
+    box.addEventListener('input', function () {
+      var p = pages(box.value);
+      out.textContent = box.value.length + ' letters · ' + p + ' page' + (p === 1 ? '' : 's') + ' each';
+    });
+  })();
+</script>
+{% endblock %}
