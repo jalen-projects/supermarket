@@ -113,7 +113,18 @@ def product_import_confirm(request):
 
 @admin_required
 def product_import_template(request):
-    """The blank spreadsheet to paste the shop's list into."""
-    response = HttpResponse(importer.template_csv(), content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="product list template.csv"'
-    return response
+    """The blank stock entry sheet: an Excel workbook built so that Excel cannot
+    damage it - barcodes stored as text, expiry only accepting real dates,
+    numbers only accepting numbers, drop-downs for category and unit, and an
+    instructions tab. The CSV template stays available with ?format=csv for
+    anyone without Excel."""
+    from django.conf import settings
+    from django.http import FileResponse
+    sheet = settings.BASE_DIR / "static" / "sheets" / "stock-entry-sheet.xlsx"
+    if request.GET.get("format") == "csv" or not sheet.exists():
+        response = HttpResponse(importer.template_csv(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="product list template.csv"'
+        return response
+    return FileResponse(
+        open(sheet, "rb"), as_attachment=True, filename="stock entry sheet.xlsx",
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

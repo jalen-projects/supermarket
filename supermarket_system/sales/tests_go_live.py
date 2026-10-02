@@ -237,10 +237,13 @@ class ImportParsingTests(TestCase):
         self.assertEqual(records[0]["name"], "Soap")
         self.assertIn("selling_price", columns)
 
-    def test_an_xlsx_file_is_refused_with_an_instruction_not_a_stack_trace(self):
+    def test_a_broken_xlsx_file_gets_an_instruction_not_a_stack_trace(self):
+        # Excel files are read directly since 2 Oct 2026 (they keep barcodes
+        # exact - see inventory/tests_import_files.py). One that cannot be
+        # opened still gets plain words, never an error page.
         with self.assertRaises(importer.ImportProblem) as caught:
             importer.read_rows(b"PK\x03\x04rest of a zip")
-        self.assertIn("Save As", str(caught.exception))
+        self.assertIn("could not be opened", str(caught.exception))
 
     def test_a_file_with_no_name_column_is_refused(self):
         with self.assertRaises(importer.ImportProblem):
@@ -297,12 +300,18 @@ class ImportApplyTests(ShopTestCase):
         self.assertEqual(
             Product.objects.get(name="Rice 1kg").stock_available, Decimal("60.000"))
 
-    def test_two_rows_sharing_a_barcode_are_refused_before_anything_is_written(self):
+    def test_two_rows_sharing_a_barcode_never_both_get_it(self):
+        # Changed 2 Oct 2026 after MAQAM's real list: refusing the second row
+        # lost its name, prices and stock over a barcode that one person with
+        # the packets can sort out later. The barcode still goes on ONE product
+        # only - the second comes in without it, with a warning saying so.
         plans = importer.plan(self.rows(
             "Name,Barcode,Selling price\nSoap A,12345,3000\nSoap B,12345,3500\n"))
         self.assertTrue(plans[0].ok)
-        self.assertFalse(plans[1].ok)
-        self.assertIn("already used on row 2", plans[1].errors[0])
+        self.assertTrue(plans[1].ok)
+        self.assertEqual(plans[0].data["barcode"], "12345")
+        self.assertIsNone(plans[1].data["barcode"])
+        self.assertIn("also on row 2", plans[1].warnings[0])
 
     def test_a_bad_row_does_not_stop_the_good_ones(self):
         plans = importer.plan(self.rows(

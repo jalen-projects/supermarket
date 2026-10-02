@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% block heading %}Products{% endblock %}
-{% block topbar %}<a href="{% url 'product_import' %}" class="btn">Import a list</a> <a href="{% url 'product_create' %}" class="btn btn-primary">Add a product</a>{% endblock %}
+{% block topbar %}<a href="{% url 'product_import_template' %}" class="btn" title="The Excel sheet for entering stock - it keeps barcodes and dates safe">Stock entry sheet</a> <a href="{% url 'product_import' %}" class="btn">Import a list</a> <a href="{% url 'product_create' %}" class="btn btn-primary">Add a product</a>{% endblock %}
 {% block content %}
 
 <div class="tabs">

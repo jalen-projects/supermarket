@@ -14,20 +14,23 @@
     </p>
 
     <ol class="muted">
-      <li>Download the template and paste the shop's list into it, or use a list you already have.</li>
-      <li>In Excel choose <strong>File &rarr; Save As &rarr; CSV (Comma delimited)</strong>.</li>
+      <li>Download the stock entry sheet and fill it in - it stops Excel from damaging barcodes, dates and numbers - or use a list you already have.</li>
+      <li>Save it in Excel as normal and <strong>upload the Excel file itself</strong> (.xlsx).
+        That keeps every barcode exact - saving as CSV makes Excel round long barcodes
+        into numbers like 6.00962E+12, and they can no longer be scanned. A CSV still works.</li>
       <li>Upload it here and read the check report before committing.</li>
     </ol>
 
-    <p><a href="{% url 'product_import_template' %}" class="btn">Download the template</a></p>
+    <p><a href="{% url 'product_import_template' %}" class="btn">Download the stock entry sheet (Excel)</a>
+      <a href="{% url 'product_import_template' %}?format=csv" class="muted" style="margin-left:.75rem">or a plain CSV</a></p>
 
     <hr>
 
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="field">
-        <label for="file">The spreadsheet (CSV)</label>
-        <input type="file" name="file" id="file" class="input" accept=".csv,text/csv" required>
+        <label for="file">The spreadsheet (Excel .xlsx, or CSV)</label>
+        <input type="file" name="file" id="file" class="input" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
       </div>
       <div class="field">
         <label>
