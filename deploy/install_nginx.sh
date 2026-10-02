@@ -37,11 +37,23 @@ server {
 }
 
 server {
-    listen 443 ssl;
+    # http2: one connection carries the page, its styles and its pictures
+    # together. The shop is ~0.4 s from this server, so every extra
+    # connection and every extra handshake is felt on each press.
+    listen 443 ssl http2;
     server_name maqam.campusnect.com;
 
     ssl_certificate     $CERT;
     ssl_certificate_key $KEY;
+    # A phone that was here a minute ago resumes the secure connection
+    # instead of negotiating it again from scratch.
+    ssl_session_cache   shared:MAQAM:10m;
+    ssl_session_timeout 1d;
+    keepalive_timeout   75s;
+
+    gzip on;
+    gzip_vary on;
+    gzip_types text/css application/javascript image/svg+xml application/json application/manifest+json;
 
     # Product photos and the logo are small; a backup upload is not done here.
     client_max_body_size 10M;

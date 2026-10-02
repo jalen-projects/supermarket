@@ -1,0 +1,26 @@
+/* The answer to a press, before the page arrives - see js/press.js. Shared by
+   every screen: the system, the sign-in and the owner's phone. */
+html { -webkit-tap-highlight-color: transparent; }
+a, button, .btn, input[type="submit"], summary { touch-action: manipulation; }
+
+html.is-going::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  height: 3px;
+  width: 100%;
+  background: #e2662f;
+  box-shadow: 0 0 10px rgba(226, 102, 47, .7);
+  transform-origin: 0 50%;
+  animation: going 2.4s cubic-bezier(.16, 1, .3, 1) both;
+}
+html.is-going body { cursor: progress; }
+html.is-going main, html.is-going .main, html.is-going .ow { opacity: .82; transition: opacity .25s ease .15s; }
+
+@keyframes going { from { transform: scaleX(0); } to { transform: scaleX(.86); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html.is-going::before { animation: none; transform: scaleX(.6); }
+}

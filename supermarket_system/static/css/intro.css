@@ -1,0 +1,74 @@
+/* The app's opening - see templates/partials/app_intro.html. Plays only when
+   the page has been given the "play-intro" class (once per visit, motion
+   allowed), and lets the page through the moment it ends or is tapped. */
+
+.app-intro { display: none; }
+
+.play-intro .app-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1.2rem;
+  background: radial-gradient(90% 60% at 50% 45%, #2b1e17 0%, #1d1612 70%);
+  cursor: pointer;
+  animation: ai-out .45s ease 3.5s forwards;
+}
+.ai-art { width: min(78vw, 420px); height: auto; overflow: visible; }
+.ai-name {
+  margin: 0;
+  color: #fff;
+  font: 760 clamp(1.3rem, 5vw, 1.9rem)/1 "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  font-stretch: 88%;
+  letter-spacing: -.02em;
+  text-align: center;
+  opacity: 0;
+  animation: ai-fade .5s ease 2.95s forwards;
+}
+
+.app-intro * { transform-box: fill-box; }
+
+/* the seed falls, splits, and the shoot rises */
+.ai-seed { animation: ai-drop .55s cubic-bezier(.55, 0, 1, .45) both; }
+.ai-seed-l { transform-origin: 100% 100%; animation: ai-split-l .3s cubic-bezier(.16, 1, .3, 1) .75s both; }
+.ai-seed-r { transform-origin: 0 100%;    animation: ai-split-r .3s cubic-bezier(.16, 1, .3, 1) .75s both; }
+.ai-soil { opacity: 0; animation: ai-fade .25s ease .4s forwards; }
+.ai-stem { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: ai-draw .5s cubic-bezier(.16, 1, .3, 1) .85s forwards; }
+.ai-leaf { transform: scale(0); animation: ai-pop .4s cubic-bezier(.34, 1.56, .64, 1) forwards; }
+.ai-leaf-1 { transform-origin: 100% 30%; animation-delay: 1.2s; }
+.ai-leaf-2 { transform-origin: 0 50%;    animation-delay: 1.32s; }
+.ai-plant { animation: ai-sink .3s ease-in 1.75s forwards; }
+
+/* the trolley draws itself and fills */
+.ai-line { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: ai-draw .5s cubic-bezier(.16, 1, .3, 1) forwards; }
+.ai-l1 { animation-delay: 1.5s; }
+.ai-l2 { animation-delay: 1.65s; }
+.ai-l3 { animation-delay: 1.8s; }
+.ai-wheel { opacity: 0; animation: ai-fade .2s ease 2s forwards; }
+.ai-goods > g { opacity: 0; animation: ai-fill .38s cubic-bezier(.34, 1.4, .64, 1) forwards; }
+.ai-g1 { animation-delay: 2s !important; }
+.ai-g2 { animation-delay: 2.12s !important; }
+.ai-g3 { animation-delay: 2.24s !important; }
+.ai-cart { transform-origin: 50% 60%; animation: ai-fold .3s ease-in 2.7s forwards; }
+
+/* and folds into the mark */
+.ai-arch { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: ai-draw .45s cubic-bezier(.16, 1, .3, 1) forwards; }
+.ai-a1 { animation-delay: 2.78s; }
+.ai-a2 { animation-delay: 2.9s; }
+.ai-counter { transform-origin: 50% 50%; transform: scaleX(0); animation: ai-bar .3s cubic-bezier(.16, 1, .3, 1) 3.08s forwards; }
+
+@keyframes ai-drop    { from { transform: translateY(-520px); } to { transform: none; } }
+@keyframes ai-split-l { to { transform: translateX(-14px) rotate(-28deg); } }
+@keyframes ai-split-r { to { transform: translateX(14px) rotate(28deg); } }
+@keyframes ai-draw    { to { stroke-dashoffset: 0; } }
+@keyframes ai-pop     { to { transform: scale(1); } }
+@keyframes ai-sink    { to { opacity: 0; transform: translateY(-120px) scale(.7); } }
+@keyframes ai-fill    { from { opacity: 1; transform: translateY(-460px); } to { opacity: 1; transform: none; } }
+@keyframes ai-fold    { to { opacity: 0; transform: scale(.55); } }
+@keyframes ai-bar     { to { transform: scaleX(1); } }
+@keyframes ai-fade    { to { opacity: 1; } }
+@keyframes ai-out     { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+
+@media (prefers-reduced-motion: reduce) { .play-intro .app-intro { display: none; } }

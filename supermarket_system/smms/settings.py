@@ -212,6 +212,18 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
+# ONLINE, EVERY STYLE AND SCRIPT IS NAMED BY ITS CONTENT (app.3f9c1a2b.css),
+# so a phone may keep it for a year without ever asking again - the server
+# is an ocean away from the shop and every question costs ~0.4 s - and the
+# day it changes it has a new name, so nobody is left looking at the old
+# design. Offline, on the shop PC, the plain names stay: there is no ocean.
+if ONLINE:
+    STORAGES["staticfiles"] = {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
+    # A file missing from the manifest falls back to its plain name rather
+    # than taking the page down.
+    WHITENOISE_MANIFEST_STRICT = False
+
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 

@@ -1,0 +1,54 @@
+{% comment %}
+  The app's opening: a seed falls, sprouts, and the shoot becomes a trolley
+  that fills with shopping; the trolley folds into the MAQAM mark and the
+  screen opens. About three and a half seconds, once per visit (not on every
+  page), tap anywhere to skip. Without JavaScript, or with motion reduced,
+  it never shows - the page underneath is always whole.
+{% endcomment %}
+<script>
+  (function () {
+    try {
+      var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reduce && !sessionStorage.getItem('maqam-intro')) {
+        document.documentElement.classList.add('play-intro');
+        sessionStorage.setItem('maqam-intro', '1');
+      }
+    } catch (e) {}
+  })();
+</script>
+<div class="app-intro" aria-hidden="true" onclick="document.documentElement.classList.remove('play-intro')">
+  <svg class="ai-art" viewBox="185 640 700 700" focusable="false">
+    <g class="ai-plant">
+      <line class="ai-soil" x1="410" y1="1180" x2="670" y2="1180" stroke="#7a4a2c" stroke-width="10" stroke-linecap="round"/>
+      <g class="ai-seed">
+        <path class="ai-seed-l" d="M540 1176 C512 1176 504 1150 516 1134 C524 1124 540 1122 540 1122 Z" fill="#9a5a2e"/>
+        <path class="ai-seed-r" d="M540 1176 C568 1176 576 1150 564 1134 C556 1124 540 1122 540 1122 Z" fill="#b8703c"/>
+      </g>
+      <path class="ai-stem" pathLength="1" d="M540 1170 C540 1090 552 1020 540 940" fill="none" stroke="#3fa766" stroke-width="16" stroke-linecap="round"/>
+      <path class="ai-leaf ai-leaf-1" d="M540 950 C500 930 452 940 432 978 C476 994 520 982 540 950 Z" fill="#46b06d"/>
+      <path class="ai-leaf ai-leaf-2" d="M540 940 C574 906 626 902 654 934 C618 962 568 966 540 940 Z" fill="#3a9a5d"/>
+    </g>
+    <g class="ai-cart">
+      <g class="ai-goods">
+        <g class="ai-g1"><ellipse cx="535" cy="905" rx="50" ry="66" fill="#e7a43a"/><path d="M535 842 C520 808 520 784 535 768 C550 784 550 808 535 842 Z M535 846 C510 824 488 826 476 842 C496 852 518 852 535 846 Z M535 846 C560 824 582 826 594 842 C574 852 552 852 535 846 Z" fill="#3a9a5d"/></g>
+        <g class="ai-g2"><rect x="600" y="878" width="170" height="78" rx="38" fill="#c98a4b"/><path d="M640 892 l18 46 M680 892 l18 46 M720 892 l18 46" stroke="#a96a33" stroke-width="7" stroke-linecap="round"/></g>
+        <g class="ai-g3"><path d="M420 870 L420 980 L490 980 L490 870 L478 840 L432 840 Z" fill="#fafaf7"/><rect x="420" y="905" width="70" height="30" fill="#3a6ea5"/></g>
+      </g>
+      <g fill="none" stroke="#e2662f" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+        <path class="ai-line ai-l1" pathLength="1" d="M700 1180 L440 1180 L360 860 L290 780 L220 780"/>
+        <path class="ai-line ai-l2" pathLength="1" d="M360 860 L850 860 L790 1100 L420 1100"/>
+        <path class="ai-line ai-l3" pathLength="1" d="M790 1100 L780 1180 L700 1180"/>
+      </g>
+      <circle class="ai-wheel" cx="470" cy="1228" r="34" fill="#1d1612" stroke="#e2662f" stroke-width="14"/>
+      <circle class="ai-wheel" cx="750" cy="1228" r="34" fill="#1d1612" stroke="#e2662f" stroke-width="14"/>
+    </g>
+    <g class="ai-mark" transform="translate(535 1000) scale(1.15) translate(-256 -278)">
+      <g fill="none" stroke="#fff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+        <path class="ai-arch ai-a1" pathLength="1" d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
+        <path class="ai-arch ai-a2" pathLength="1" d="M256 190 A53 53 0 0 1 362 190 V326"/>
+      </g>
+      <rect class="ai-counter" x="140" y="366" width="232" height="22" rx="11" fill="#e2662f"/>
+    </g>
+  </svg>
+  <p class="ai-name">{{ shop.company_name }}</p>
+</div>

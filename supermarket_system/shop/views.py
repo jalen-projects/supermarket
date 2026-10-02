@@ -476,10 +476,31 @@ def service_worker(request):
     """Served from the root rather than /static/, because a service worker can
     only look after pages at or below the address it was loaded from."""
     path = django_settings.BASE_DIR / "static" / "js" / "sw.js"
-    response = HttpResponse(path.read_text(encoding="utf-8"),
-                            content_type="application/javascript")
+    response = HttpResponse(
+        path.read_text(encoding="utf-8").replace("__STAMP__", _static_stamp()),
+        content_type="application/javascript")
+    # Never kept: a phone must always be able to learn there is a new version.
+    response["Cache-Control"] = "no-cache"
     response["Service-Worker-Allowed"] = "/"
     return response
+
+
+def _static_stamp():
+    """A short fingerprint of the app's look, for the service worker's cache
+    name. Taken from the collected manifest online (it changes whenever any
+    style, script or picture does), else from the source files themselves."""
+    import hashlib
+    digest = hashlib.sha1()
+    manifest = django_settings.STATIC_ROOT / "staticfiles.json"
+    if manifest.exists():
+        digest.update(manifest.read_bytes())
+    else:
+        for sub in ("css", "js", "brand", "img"):
+            for f in sorted((django_settings.BASE_DIR / "static" / sub).glob("*")):
+                if f.is_file():
+                    digest.update(f.name.encode())
+                    digest.update(str(f.stat().st_mtime_ns).encode())
+    return digest.hexdigest()[:10]
 
 
 def offline_page(request):

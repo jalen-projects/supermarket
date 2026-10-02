@@ -22,44 +22,7 @@
     </div>
 
     <nav class="nav" data-tour="nav">
-      <div class="nav-label">Selling</div>
-      <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">New sale (till)</a>
-      <a href="{% url 'sale_list' %}" class="{% if request.resolver_match.url_name == 'sale_list' %}active{% endif %}">Receipts</a>
-      <a href="{% url 'day_summary' %}" class="{% if request.resolver_match.url_name == 'day_summary' %}active{% endif %}">Today's takings</a>
-      <a href="{% url 'cash_up' %}" data-tour="nav-cashup" class="{% if request.resolver_match.url_name == 'cash_up' %}active{% endif %}">Cash up (hand over)</a>
-{% if user.is_admin %}      <a href="{% url 'shift_list' %}" class="{% if request.resolver_match.url_name == 'shift_list' or request.resolver_match.url_name == 'shift_detail' %}active{% endif %}">Cash-ups &amp; shortages</a>
-{% endif %}      <a href="{% url 'customer_list' %}" class="{% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">Customers</a>
-
-      {% if user.is_admin %}
-      <div class="nav-label">Stock</div>
-      <a href="{% url 'product_list' %}" class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">Products</a>
-      <a href="{% url 'capture' %}" data-tour="nav-capture" class="{% if request.resolver_match.url_name == 'capture' %}active{% endif %}">Stock capture (scan shelves)</a>
-      <a href="{% url 'stock_list' %}" class="{% if request.resolver_match.url_name == 'stock_list' %}active{% endif %}">Stock available</a>
-      <a href="{% url 'stock_take' %}" class="{% if request.resolver_match.url_name == 'stock_take' or request.resolver_match.url_name == 'stock_count_list' or request.resolver_match.url_name == 'stock_count_detail' %}active{% endif %}">Stock take (count the shelves)</a>
-      <a href="{% url 'purchase_list' %}" class="{% if request.resolver_match.url_name == 'purchase_list' %}active{% endif %}">Purchases</a>
-      <a href="{% url 'expiry_list' %}" class="{% if request.resolver_match.url_name == 'expiry_list' %}active{% endif %}">Expiry watch</a>
-      <a href="{% url 'supplier_list' %}" class="{% if request.resolver_match.url_name == 'supplier_list' %}active{% endif %}">Suppliers</a>
-      <a href="{% url 'category_list' %}" class="{% if request.resolver_match.url_name == 'category_list' %}active{% endif %}">Categories</a>
-      <a href="{% url 'unit_list' %}" class="{% if request.resolver_match.url_name == 'unit_list' %}active{% endif %}">Measurements</a>
-      <a href="{% url 'movement_list' %}" class="{% if request.resolver_match.url_name == 'movement_list' %}active{% endif %}">Stock movements</a>
-
-      <div class="nav-label">Reports</div>
-      <a href="{% url 'reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">All reports</a>
-      <a href="{% url 'report_sales' %}">Sales &amp; sellers</a>
-      <a href="{% url 'report_profit' %}">Profit</a>
-      <a href="{% url 'report_top_products' %}">Best &amp; slow movers</a>
-
-      <div class="nav-label">Setup</div>
-      <a href="{% url 'owner' %}" class="{% if request.resolver_match.url_name == 'owner' %}active{% endif %}">My shop on my phone</a>
-      <a href="{% url 'audit' %}" class="{% if request.resolver_match.url_name == 'audit' %}active{% endif %}">Audit trail</a>
-      <a href="{% url 'shop_settings' %}" class="{% if request.resolver_match.url_name == 'shop_settings' %}active{% endif %}">Shop details</a>
-      <a href="{% url 'user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">Users</a>
-      <a href="{% url 'network' %}" data-tour="nav-network" class="{% if request.resolver_match.url_name == 'network' %}active{% endif %}">Other computers</a>
-      <a href="{% url 'backup' %}" class="{% if request.resolver_match.url_name == 'backup' %}active{% endif %}">Backup</a>
-      {% endif %}
-
-      <div class="nav-label">Help</div>
-      <a href="{% url 'help' %}" class="{% if request.resolver_match.url_name == 'help' %}active{% endif %}">How do I&hellip;?</a>
+{% include "partials/nav_links.html" %}
     </nav>
 
     <div class="sidebar-foot">
@@ -71,6 +34,20 @@
   </aside>
 
   <div class="main">
+    {% comment %}
+      A phone's own frame: the sidebar is a computer's furniture, so on a
+      phone the shop's mark and the way back to "My shop" sit along the top,
+      and the screens used most sit under the thumb along the bottom.
+    {% endcomment %}
+    <header class="m-top no-print">
+      {% if shop.logo %}<img class="m-logo" src="{{ shop.logo.url }}" alt="">{% endif %}
+      <span class="m-shop">{{ shop.company_name }}</span>
+      {% if user.is_admin %}
+        <a class="m-home{% if request.resolver_match.url_name == 'owner' %} active{% endif %}" href="{% url 'owner' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>
+          My shop</a>
+      {% endif %}
+    </header>
     <header class="topbar no-print">
       <h1>{% block heading %}{% endblock %}</h1>
       <div class="spacer"></div>
@@ -118,6 +95,42 @@
     </div>
   </div>
 </div>
+
+<nav class="m-tabs no-print" aria-label="Main">
+  <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg>
+    <span>Till</span></a>
+  <a href="{% url 'sale_list' %}" class="{% if request.resolver_match.url_name == 'sale_list' or request.resolver_match.url_name == 'sale_detail' %}active{% endif %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+    <span>Receipts</span></a>
+  <a href="{% url 'day_summary' %}" class="{% if request.resolver_match.url_name == 'day_summary' %}active{% endif %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+    <span>Takings</span></a>
+  {% if user.is_admin %}
+  <a href="{% url 'product_list' %}" class="{% if request.resolver_match.url_name == 'product_list' or request.resolver_match.url_name == 'stock_list' %}active{% endif %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5-9 5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>
+    <span>Stock</span></a>
+  {% else %}
+  <a href="{% url 'cash_up' %}" class="{% if request.resolver_match.url_name == 'cash_up' %}active{% endif %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>
+    <span>Cash up</span></a>
+  {% endif %}
+  <details class="m-more">
+    <summary>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <span>More</span></summary>
+    <div class="m-sheet">
+      <div class="m-sheet-who">
+        <strong>{{ user.display_name }}</strong>
+        <span>{{ user.get_role_display }}</span>
+        <a href="{% url 'logout' %}" onclick="event.preventDefault();document.getElementById('logout-form').submit();">Sign out</a>
+      </div>
+      <nav class="m-sheet-nav">
+{% include "partials/nav_links.html" %}
+      </nav>
+    </div>
+  </details>
+</nav>
 
 <script>
   // The date the client asked for, shown live so the cashier can see the till
