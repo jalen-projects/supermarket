@@ -11,35 +11,55 @@
 </head>
 <body class="signin">
 {% comment %}
-  The entry to the shop. Two halves: the shop's own green with its mark
-  drawing itself, and the sign-in. Every effect is CSS on elements that are
+  The entry to the shop: the shop floor in a photograph, and the sign-in
+  printed on a till receipt standing over it. Every effect is CSS on elements that are
   already in place, so the page is whole before - and without - any script.
   The script at the foot only adds the show-password button, the caps-lock
   warning and the "signing in" state.
 {% endcomment %}
 <main class="si">
+  {% comment %}
+    The shop floor: a shopper with a full trolley (stock photograph, Gustavo
+    Fring / Pexels - see static/img/CREDITS.txt) until the owner sends photos
+    of his own shop. A picture element so a phone downloads the upright crop
+    and never the 2400px one.
+  {% endcomment %}
+  <picture class="si-photo">
+    <source media="(max-width: 860px)" srcset="{% static 'img/shopper-portrait-900.webp' %}" type="image/webp">
+    <source media="(max-width: 860px)" srcset="{% static 'img/shopper-portrait-900.jpg' %}">
+    <source srcset="{% static 'img/shopper-1440.webp' %} 1440w, {% static 'img/shopper-2400.webp' %} 2400w" sizes="100vw" type="image/webp">
+    <img src="{% static 'img/shopper-1440.jpg' %}" srcset="{% static 'img/shopper-1440.jpg' %} 1440w, {% static 'img/shopper-2400.jpg' %} 2400w"
+         sizes="100vw" alt="" decoding="async" fetchpriority="high">
+  </picture>
+
   <section class="si-brand" aria-label="{{ shop.company_name }}">
-    <div class="si-awning" aria-hidden="true"></div>
-    <div class="si-brand-inner">
-      <svg class="si-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
-        <g fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
-          <path class="arch arch-1" pathLength="1" d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
-          <path class="arch arch-2" pathLength="1" d="M256 190 A53 53 0 0 1 362 190 V326"/>
-        </g>
-        <rect class="counter" x="140" y="366" width="232" height="22" rx="11" fill="currentColor"/>
-      </svg>
-      <p class="si-name">{{ shop.company_name }}</p>
-      {% if shop.tagline %}<p class="si-tagline">{{ shop.tagline }}</p>{% endif %}
+    <svg class="si-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+      <g fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+        <path class="arch arch-1" pathLength="1" d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
+        <path class="arch arch-2" pathLength="1" d="M256 190 A53 53 0 0 1 362 190 V326"/>
+      </g>
+      <rect class="counter" x="140" y="366" width="232" height="22" rx="11" fill="currentColor"/>
+    </svg>
+    <p class="si-name">{{ shop.company_name }}</p>
+    {% if shop.tagline %}<p class="si-tagline">{{ shop.tagline }}</p>{% endif %}
+  </section>
+
+  <section class="si-panel">
+    <div class="si-receipt">
+      <div class="si-rhead">
+        <svg class="si-rmark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+          <g fill="none" stroke="currentColor" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M150 326 V190 A53 53 0 0 1 256 190 V326"/><path d="M256 190 A53 53 0 0 1 362 190 V326"/>
+          </g>
+          <rect x="140" y="366" width="232" height="26" rx="13" fill="currentColor"/>
+        </svg>
+      </div>
       <dl class="si-facts">
         <div><dt>Today</dt><dd>{{ trading_day|date:"l j F" }}</dd></div>
         <div><dt>Open</dt><dd>{{ shop.opens_at|time:"H:i" }} &ndash; {{ shop.closes_at|time:"H:i" }}</dd></div>
         {% if shop.address %}<div><dt>Shop</dt><dd>{{ shop.address }}</dd></div>{% endif %}
       </dl>
-    </div>
-  </section>
 
-  <section class="si-panel">
-    <div class="si-card">
       <h1 class="si-title">{{ greeting }}.</h1>
       <p class="si-lede">Sign in to open the till.</p>
 

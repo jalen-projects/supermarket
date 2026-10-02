@@ -24,9 +24,9 @@ body.ow {
   padding: calc(.9rem + env(safe-area-inset-top)) 1.1rem .9rem;
   color: #fff;
   background:
-    radial-gradient(120% 140% at 0% 0%, var(--g-700), transparent 70%),
-    var(--g-900);
-  box-shadow: 0 8px 24px -14px rgba(2, 20, 13, .7);
+    radial-gradient(90% 130% at 0% 0%, rgba(200, 72, 26, .55), transparent 70%),
+    var(--b-900);
+  box-shadow: 0 8px 24px -14px rgba(10, 6, 4, .7);
 }
 .ow-mark { width: 38px; height: 38px; flex: none; color: #fff; }
 .ow-head-text { min-width: 0; flex: 1; }
@@ -44,7 +44,7 @@ body.ow {
   overflow: hidden;
   text-wrap: balance;
 }
-.ow-time { margin: 0; font-size: .82rem; color: var(--g-200); font-variant-numeric: tabular-nums; }
+.ow-time { margin: 0; font-size: .82rem; color: var(--b-200); font-variant-numeric: tabular-nums; }
 
 .ow-state {
   flex: none;
@@ -58,9 +58,9 @@ body.ow {
   background: rgba(255, 255, 255, .12);
 }
 .ow-state i { width: .55rem; height: .55rem; border-radius: 50%; background: currentColor; }
-.ow-state.is-live { color: #8ff0c4; }
+.ow-state.is-live { color: #7fe0b4; }
 .ow-state.is-silent { color: #fff; background: #b42318; }
-.ow-state.is-closed, .ow-state.is-waiting { color: #d6e4de; }
+.ow-state.is-closed, .ow-state.is-waiting { color: #e7dad2; }
 @media (prefers-reduced-motion: no-preference) {
   .ow-state.is-live i { animation: beat 2.4s var(--out-quart) infinite; }
   .ow-state.is-silent i { animation: beat 1.1s var(--out-quart) infinite; }
@@ -84,7 +84,7 @@ body.ow {
   padding: .8rem 1rem;
   border-radius: 14px;
   background: #fff4dc;
-  color: var(--mango-deep);
+  color: var(--b-800);
   font-size: .9rem;
 }
 
@@ -105,8 +105,8 @@ body.ow {
   padding: 1.4rem 1.25rem 1.6rem;
   background: #fff;
   border-radius: 6px 6px 0 0;
-  box-shadow: 0 1px 2px rgba(7, 54, 38, .06), 0 18px 34px -22px rgba(7, 54, 38, .45);
-  font-family: "Consolas", "SF Mono", "Courier New", monospace;
+  box-shadow: 0 1px 2px rgba(29, 22, 18, .06), 0 18px 34px -22px rgba(29, 22, 18, .45);
+  font-family: var(--mono);
 }
 .ow-receipt::after {
   content: "";
@@ -132,7 +132,7 @@ body.ow {
 .ow-lines div {
   display: flex;
   align-items: baseline;
-  background: radial-gradient(circle, #b9c7c0 1px, transparent 1.4px) 0 72% / 6px 6px repeat-x;
+  background: radial-gradient(circle, #c9bcb3 1px, transparent 1.4px) 0 72% / 6px 6px repeat-x;
 }
 .ow-lines dt { color: var(--ink-soft); background: #fff; padding-right: .3rem; }
 .ow-lines dd {
@@ -146,7 +146,7 @@ body.ow {
 .ow-total {
   margin: 1rem 0 0;
   padding-top: .8rem;
-  border-top: 2px dashed #c9d5cf;
+  border-top: 2px dashed #d8ccc4;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -160,7 +160,7 @@ body.ow {
   font-stretch: 90%;
   letter-spacing: -.03em;
   font-variant-numeric: tabular-nums;
-  color: var(--g-950);
+  color: var(--b-950);
   line-height: 1;
 }
 .ow-count { margin: .6rem 0 0; font-size: .85rem; color: var(--ink-soft); text-align: right; }
@@ -172,7 +172,7 @@ body.ow {
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -.015em;
-  color: var(--g-950);
+  color: var(--b-950);
 }
 
 .ow-tills { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
@@ -184,11 +184,11 @@ body.ow {
   padding: .75rem .9rem;
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(7, 54, 38, .06);
+  box-shadow: 0 1px 2px rgba(29, 22, 18, .06);
 }
 .ow-tills i { grid-row: span 2; width: .7rem; height: .7rem; border-radius: 50%; }
-.ow-tills .is-on i { background: var(--g-500); }
-.ow-tills .is-off i { background: #c4cdc9; }
+.ow-tills .is-on i { background: var(--live); }
+.ow-tills .is-off i { background: #cbbfb7; }
 .ow-till-name { font-weight: 600; }
 .ow-till-seen { font-size: .85rem; color: var(--ink-soft); }
 .ow-tills .is-off .ow-till-seen { color: #b42318; }
@@ -200,7 +200,7 @@ body.ow {
   grid-template-columns: 3.1rem 1fr;
   gap: .6rem;
   padding: .6rem 0;
-  border-bottom: 1px solid #e3eae6;
+  border-bottom: 1px solid #ebe3de;
   font-size: .94rem;
 }
 .ow-events time { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
@@ -212,19 +212,19 @@ body.ow {
 .ow-install {
   padding: 1.1rem;
   border-radius: 18px;
-  background: var(--g-100);
+  background: var(--b-100);
 }
 .ow-install p { margin: 0 0 .8rem; }
 .ow-ios { margin: 0; font-size: .9rem; color: var(--ink-soft); }
 
-.ow-nav { display: grid; gap: .25rem; padding-top: .5rem; border-top: 1px solid #e3eae6; }
+.ow-nav { display: grid; gap: .25rem; padding-top: .5rem; border-top: 1px solid #ebe3de; }
 .ow-nav a, .ow-nav button {
   display: block;
   width: 100%;
   text-align: left;
   padding: .85rem 0;
   font: 600 1rem/1.2 var(--ui);
-  color: var(--g-800);
+  color: var(--b-800);
   background: none;
   border: 0;
   cursor: pointer;

@@ -1,9 +1,44 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load static humanize %}
 {% block heading %}Dashboard{% endblock %}
 {% block topbar %}<a href="{% url 'pos' %}" class="btn btn-primary">Open the till</a>{% endblock %}
 
+{% block head %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
 {% block content %}
+{% comment %}
+  The shop is alive above the numbers: a band like the mouth of the till
+  printer, with three rolls of his own shelf - names and shelf prices -
+  feeding up out of it at their own speeds. Decoration only: hidden from
+  screen readers, never on the till itself, and still when motion is reduced.
+{% endcomment %}
+<section class="dash-band no-print">
+  <div class="dash-hello">
+    <p class="dash-shop">{{ today|date:"l j F" }}</p>
+    <p class="dash-day">{% if shop.opens_at %}Open {{ shop.opens_at|time:"H:i" }}&ndash;{{ shop.closes_at|time:"H:i" }}{% endif %}{% if shop.address %} &middot; {{ shop.address }}{% endif %}</p>
+  </div>
+  <div class="till-rolls" aria-hidden="true">
+    {% for column in till_rolls %}
+      <div class="roll roll-{{ forloop.counter }}">
+        <div class="roll-feed">
+          {% for copy in "ab" %}
+            <div class="roll-slip">
+              <p class="roll-shop">{{ shop.company_name }}</p>
+              {% for name, price in column %}<p class="roll-line"><span>{{ name }}</span><b>{{ price }}</b></p>{% endfor %}
+              <p class="roll-thanks">Thank you</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <svg class="roll-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M150 326 V190 A53 53 0 0 1 256 190 V326"/><path d="M256 190 A53 53 0 0 1 362 190 V326"/>
+    </g>
+    <rect x="140" y="366" width="232" height="20" rx="10" fill="currentColor"/>
+  </svg>
+</section>
 
 <div class="grid grid-4" style="margin-bottom:1.25rem">
   <div class="stat good" data-tour="takings">
@@ -71,7 +106,7 @@
             {% for s in recent_sales %}
             <tr>
               <td><a href="{% url 'sale_detail' s.pk %}" class="mono">{{ s.receipt_no }}</a></td>
-              <td class="muted">{{ s.created_at|date:"H:i" }}</td>
+              <td class="muted tnum">{{ s.created_at|date:"H:i" }}</td>
               <td>{{ s.served_by.display_name }}</td>
               <td class="muted">{{ s.customer_name }}</td>
               <td class="num">{{ s.total|floatformat:0|intcomma }}</td>

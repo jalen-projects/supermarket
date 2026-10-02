@@ -102,7 +102,28 @@ def dashboard(request):
             "top_sellers": (week_sales.values("served_by__first_name", "served_by__username")
                             .annotate(total=Sum("total"), n=Count("id")).order_by("-total")[:5]),
         })
+    ctx["till_rolls"] = till_rolls()
     return render(request, "shop/dashboard.html", ctx)
+
+
+def till_rolls(columns=3, per_column=14):
+    """The lines printed on the dashboard's moving till rolls.
+
+    His own shelves - product names and SELLING prices only, the figures
+    already printed on every shelf label, never what he paid for them. A shop
+    with nothing entered yet prints its own name and address instead, rather
+    than products it does not sell.
+    """
+    shop = ShopSettings.get()
+    products = list(Product.objects.filter(is_active=True, selling_price__gt=0)
+                    .order_by("name").values_list("name", "selling_price")[:columns * per_column])
+    if products:
+        lines = [(name, f"{price:,.0f}") for name, price in products]
+    else:
+        lines = [(shop.company_name, ""), (shop.tagline or "", ""),
+                 (shop.address or "", ""), ("Thank you for shopping with us", "")]
+        lines = [line for line in lines if line[0]] * 4
+    return [lines[i::columns] or lines for i in range(columns)]
 
 
 # ---------------------------------------------------------------------------
@@ -437,8 +458,8 @@ def manifest(request):
         "scope": "/",
         "display": "standalone",
         "orientation": "portrait",
-        "background_color": "#073626",
-        "theme_color": "#0a5f45",
+        "background_color": "#1d1612",
+        "theme_color": "#1d1612",
         "icons": [
             {"src": "/static/brand/app-192.png", "sizes": "192x192", "type": "image/png"},
             {"src": "/static/brand/app-512.png", "sizes": "512x512", "type": "image/png"},

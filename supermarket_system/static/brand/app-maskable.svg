@@ -2,12 +2,12 @@
      shape; the mark sits inside the central safe circle. Rendered to PNG by
      headless Chrome - see DEPLOY-ONLINE.md. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" fill="#0e7c5a"/>
+  <rect width="512" height="512" fill="#c8481a"/>
   <g transform="translate(256 256) scale(.68) translate(-256 -270)">
     <g fill="none" stroke="#ffffff" stroke-width="38" stroke-linecap="round">
       <path d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
       <path d="M256 190 A53 53 0 0 1 362 190 V326"/>
     </g>
-    <rect x="140" y="366" width="232" height="22" rx="11" fill="#f2b33d"/>
+    <rect x="140" y="366" width="232" height="22" rx="11" fill="#fbece4"/>
   </g>
 </svg>

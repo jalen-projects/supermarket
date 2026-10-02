@@ -1,0 +1,155 @@
+/* The dashboard's moving moment: the mouth of the till printer.
+
+   A warm-charcoal band across the top of the dashboard, the shop's name and
+   day on the left, and three paper rolls feeding up out of it - each printing
+   his own shelf (names and shelf prices) at its own speed, the way a receipt
+   leaves the printer. Below the band the figures sit on plain paper and never
+   move. Only transform is animated, on three elements, so an old shop PC
+   composites it without repainting; with motion reduced the rolls stand
+   still. Never on the till screen itself. */
+
+.dash-band {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  height: 15.5rem;
+  margin: 0 0 1.4rem;
+  border-radius: 14px;
+  color: #fff;
+  background:
+    radial-gradient(70% 120% at 0% 0%, rgba(200, 72, 26, .32), transparent 60%),
+    #1d1612;
+  box-shadow: 0 18px 40px -26px rgba(29, 22, 18, .6);
+}
+
+.dash-hello {
+  position: absolute;
+  left: clamp(1.25rem, 3vw, 2.25rem);
+  bottom: clamp(1.1rem, 2.4vw, 1.75rem);
+  z-index: 2;
+  max-width: 24rem;
+}
+.dash-shop {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 760;
+  font-stretch: 88%;
+  font-size: clamp(1.7rem, 2.6vw, 2.35rem);
+  line-height: .98;
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+.dash-day {
+  margin: .55rem 0 0;
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: #e9d4c7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* the mark, large and faint, behind the name */
+.roll-mark {
+  position: absolute;
+  left: -2.5rem;
+  top: -3.5rem;
+  width: 17rem;
+  height: auto;
+  color: #e2662f;
+  opacity: .13;
+  z-index: 0;
+}
+
+/* The printer's mouth is the top edge: paper appears out of it and leaves
+   through the bottom, faded at both so it never ends in a hard cut. */
+.till-rolls {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(60%, 46rem);
+  z-index: 1;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%);
+          mask: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%);
+}
+
+.roll {
+  position: absolute;
+  top: -2rem;
+  bottom: -2rem;
+  width: 12.5rem;
+  overflow: hidden;
+}
+.roll-1 { right: 29rem; transform: rotate(-2.5deg); }
+.roll-2 { right: 15.5rem; transform: rotate(1.5deg); }
+.roll-3 { right: 2rem;   transform: rotate(-1deg); }
+
+.roll-slip {
+  margin: 0 0 1.6rem;
+  padding: .9rem .95rem 1.1rem;
+  background: #fafaf7;
+  color: #3a2a22;
+  font: 500 .74rem/1.6 var(--mono);
+  font-variant-numeric: tabular-nums;
+  -webkit-mask:
+    linear-gradient(#000 0 0) center / 100% calc(100% - 16px) no-repeat,
+    radial-gradient(circle at 5px 0, transparent 4px, #000 4.5px) top / 10px 8px repeat-x,
+    radial-gradient(circle at 5px 100%, transparent 4px, #000 4.5px) bottom / 10px 8px repeat-x;
+          mask:
+    linear-gradient(#000 0 0) center / 100% calc(100% - 16px) no-repeat,
+    radial-gradient(circle at 5px 0, transparent 4px, #000 4.5px) top / 10px 8px repeat-x,
+    radial-gradient(circle at 5px 100%, transparent 4px, #000 4.5px) bottom / 10px 8px repeat-x;
+}
+.roll-slip p { margin: 0; }
+.roll-shop {
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-size: .64rem;
+  padding: .2rem 0 .5rem;
+  margin-bottom: .4rem !important;
+  border-bottom: 1px dashed #cdbfb6;
+  color: #a23a12;
+}
+.roll-line { display: flex; gap: .5rem; }
+.roll-line span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.roll-line b { font-weight: 650; color: #1d1612; }
+.roll-thanks {
+  text-align: center;
+  margin-top: .5rem !important;
+  padding-top: .45rem;
+  border-top: 1px dashed #cdbfb6;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-size: .62rem;
+  color: #6e625b;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Two copies of every slip are printed, so moving the strip up by exactly
+     half its height lands it where it started: an endless roll. */
+  .roll-feed { animation: feed linear infinite; will-change: transform; }
+  .roll-1 .roll-feed { animation-duration: 46s; }
+  .roll-2 .roll-feed { animation-duration: 62s; animation-delay: -21s; }
+  .roll-3 .roll-feed { animation-duration: 54s; animation-delay: -38s; }
+  .roll-mark { animation: breathe 12s ease-in-out infinite alternate; transform-origin: 30% 40%; }
+}
+
+@keyframes feed    { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+@keyframes breathe { from { transform: rotate(0) scale(1); } to { transform: rotate(-4deg) scale(1.05); } }
+
+/* Mid-width screens: two rolls; a phone: one roll, wholly in view. */
+@media (max-width: 1180px) { .roll-1 { display: none; } }
+@media (max-width: 760px) {
+  .dash-band { height: 12.5rem; margin-bottom: 1rem; }
+  .till-rolls { width: 11.75rem; }
+  .roll-2 { display: none; }
+  .roll { width: 10.75rem; }
+  .roll-3 { right: .6rem; }
+  .roll-slip { font-size: .64rem; padding: .75rem .65rem .9rem; }
+  .roll-line { gap: .35rem; }
+  .dash-hello { left: 1.1rem; max-width: calc(100% - 13rem); }
+  .dash-shop { font-size: 1.35rem; overflow-wrap: anywhere; }
+  .dash-day { font-size: .72rem; }
+}
+
+@media print { .dash-band { display: none; } }
