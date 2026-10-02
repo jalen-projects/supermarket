@@ -89,13 +89,13 @@ class ShopSettingsForm(BootstrapMixin, forms.ModelForm):
 class UserForm(BootstrapMixin, UserCreationForm):
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "phone", "role", "is_active"]
+        fields = ["username", "first_name", "last_name", "phone", "email", "role", "is_active"]
 
 
 class UserEditForm(BootstrapMixin, forms.ModelForm):
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "phone", "role", "is_active"]
+        fields = ["username", "first_name", "last_name", "phone", "email", "role", "is_active"]
 
 
 class PasswordResetForm(BootstrapMixin, forms.Form):

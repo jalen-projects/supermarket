@@ -8,14 +8,15 @@ THE OWNER (an ADMIN) gets the code by SMS and by email, both at once. Either is
 enough. With no phone on his account it goes by email alone; he is never
 locked out of his own shop because the SMS credit ran dry.
 
-A CASHIER gets it by SMS to the phone on their account. Two roads can be shut:
+A CASHIER gets it by SMS to the phone on their account. When that road is
+shut - no phone on the account, credit used up, or EGO down - it goes to the
+cashier's OWN email if the account has one (the owner's choice, 2 Oct 2026:
+"so that they don't disturb the owner"). Only a cashier with neither a
+working SMS nor an email of their own falls back to the OWNER:
 
-* No phone on the account - the cashier is refused, and told to ask the owner
-  to add their number. A code cannot go to "somewhere".
-
-* The SMS cannot go (credit used up, or EGO down) - the code goes to the OWNER
-  instead, by email, saying which cashier is signing in. The cashier is told to
-  ask him for it. This is the safest of the three choices:
+* The code goes to the owner by email, saying which cashier is signing in,
+  and the cashier is told to ask him for it. This is the safest of the three
+  choices:
     - letting the cashier in without a code would make "credit ran out" the
       way round the lock - exactly the hole the codes exist to close;
     - refusing outright would close the till on a busy day over a top-up, and
@@ -62,10 +63,10 @@ def _sms_text(shop_name, code):
 def send_code(user, shop_name="MAQAM"):
     """Issue a code and deliver it. Returns the SignInCode; raises Refused."""
     number = services.normalise_phone(getattr(user, "phone", ""))
-    if not user.is_admin and not number:
+    if not user.is_admin and not number and not user.email:
         raise Refused(
-            "Your account has no mobile number, so the sign-in code cannot reach "
-            "you. Ask the owner to add your number under Users, then try again.")
+            "Your account has no mobile number or email, so the sign-in code cannot "
+            "reach you. Ask the owner to add your number under Users, then try again.")
 
     row, code = SignInCode.issue(user)
     roads = []
@@ -96,6 +97,11 @@ def send_code(user, shop_name="MAQAM"):
         if not roads:
             raise Refused("The sign-in code could not be sent by SMS or email. "
                           "Call CampusNect on +256 708 646603.")
+    elif not sms_went and user.email and _email(
+            [user.email], f"{shop_name} sign-in code",
+            f"Your sign-in code is {code}.\n\nIt expires in 5 minutes. It came by "
+            f"email because it could not be sent to your phone.\n\n- Your shop system"):
+        roads.append("your email")
     elif not sms_went:
         if _email(_owner_emails(), f"{shop_name}: {user.display_name} is signing in",
                   f"{user.display_name} is signing in to a till and the code could not "

@@ -240,6 +240,30 @@ class SignInCodeTests(ShopTestCase):
         self.client.post(reverse("sms_code"), {"code": code})
         self.assertTrue(self.signed_in())
 
+    @override_settings(**LIVE)
+    def test_no_credit_sends_the_code_to_the_cashiers_own_email_first(self):
+        # The owner's choice: a cashier with an email of their own does not
+        # disturb him.
+        self.cashier.email = "moses@example.com"
+        self.cashier.save()
+        with mock.patch("sms.services.ego_send", Gateway()):
+            self.sign_in()
+        row = SignInCode.objects.get()
+        self.assertFalse(row.via_owner)
+        self.assertEqual([m.to for m in mail.outbox], [["moses@example.com"]])
+        code = re.search(r"(\d{6})", mail.outbox[0].body).group(1)
+        self.client.post(reverse("sms_code"), {"code": code})
+        self.assertTrue(self.signed_in())
+
+    @override_settings(**LIVE)
+    def test_a_cashier_with_only_an_email_still_gets_a_code(self):
+        self.cashier.phone = ""
+        self.cashier.email = "moses@example.com"
+        self.cashier.save()
+        self.sign_in()
+        self.assertEqual(mail.outbox[0].to, ["moses@example.com"])
+        self.assertFalse(self.signed_in())
+
     @override_settings(**{**LIVE, "OWNER_ALERT_EMAILS": []})
     def test_no_credit_and_no_owner_email_refuses_with_the_reason(self):
         response = self.sign_in()
