@@ -184,9 +184,6 @@ MAQAM_SMS_KEY=
 MAQAM_SMS_SENDER=
 MAQAM_SMS_LIVE=0
 MAQAM_ALERT_PHONE=
-FLW_PUBLIC_KEY=
-FLW_SECRET_KEY=
-FLW_SECRET_HASH=
 ```
 
 - `MAQAM_SMS_USERNAME` / `MAQAM_SMS_KEY` — the **API** username and key of the
@@ -205,10 +202,12 @@ FLW_SECRET_HASH=
 grep -E '^FLW_(PUBLIC_KEY|SECRET_KEY|SECRET_HASH)=' /home/campusnect/app/.env >> /home/maqam/maqam.env
 ```
 
-  then delete the empty `FLW_` lines above them in `nano`.
+  Run it once, after saving the file. Do not also type empty `FLW_` lines -
+  the first copy of a setting is the one that counts.
 
-**2. Before switching on:** every cashier needs their mobile number on their
-account (*Users* → edit), or they cannot sign in online. The owner's account
+**2. Before switching on:** every cashier needs their mobile number - and,
+ideally, their own email - on their account (*Users* → edit). With neither
+they cannot sign in online. The owner's account
 should have his email and phone.
 
 **3. Apply it** — run the "Updating it later" block above (it migrates and
@@ -225,8 +224,8 @@ The reference must be the payment's own, so the same money cannot be added
 twice. `... manage.py sms_credit --balance` shows what is left.
 
 **When the credit runs out:** the owner still gets his code by email. A
-cashier's code goes to the owner's email instead, and the cashier is told to
-ask him for it — the till keeps selling, nobody gets in without a code, and
+cashier's code goes to the cashier's own email; only a cashier with no email
+of their own has it sent to the owner, and is told to ask him for it — the till keeps selling, nobody gets in without a code, and
 he learns at once that it is time to top up.
 
 ## When he renews the hosting
