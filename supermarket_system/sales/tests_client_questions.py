@@ -264,6 +264,18 @@ class DeleteProductTests(ShopTestCase):
         response = self.client.get(reverse("product_lookup"), {"q": "Discontinued"})
         self.assertEqual(response.json()["results"], [])
 
+    def test_many_retired_products_go_back_on_sale_at_once(self):
+        a, b = self.make_product(), self.make_product()
+        for p in (a, b):
+            self.deliver(p, 5)
+        self.client.login(username="owner", password="pw12345")
+        for p in (a, b):
+            self.client.post(reverse("product_delete", args=[p.pk]))
+        self.client.post(reverse("product_bulk_restore"), {"scope": "all", "view": "inactive"})
+        for p in (a, b):
+            p.refresh_from_db()
+            self.assertTrue(p.is_active)
+
     def test_a_retired_product_can_be_brought_back(self):
         product = self.make_product()
         self.deliver(product, 5)

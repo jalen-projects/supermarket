@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import JsonResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 
@@ -260,6 +261,32 @@ def product_delete(request, pk):
         "delivered": delivered, "movements": movements, "counted": counted,
         "stock": stock,
     })
+
+
+@admin_required
+def product_bulk_restore(request):
+    """Put many products back on sale at once - the ticked ones on the
+    'Not for sale' tab, or all of them. Taking a list off sale in one press
+    and bringing it back one product at a time left whole shelves unsellable."""
+    if request.method != "POST":
+        return redirect("product_list")
+    if request.POST.get("scope") == "all":
+        products = [p for p in _filtered_products(request.POST) if not p.is_active]
+    else:
+        ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
+        products = list(Product.objects.filter(pk__in=ids, is_active=False).order_by("name"))
+    if not products:
+        messages.info(request, "Tick the products to put back on sale first.")
+        return redirect(reverse("product_list") + "?view=inactive")
+    Product.objects.filter(pk__in=[p.pk for p in products]).update(is_active=True)
+    audit.record(
+        AuditEvent.Action.PRODUCT_DELETED,
+        f"Bulk: put {len(products)} back on sale",
+        request=request, reference="bulk-restore",
+        changes="Back on sale: " + ", ".join(p.name for p in products)[:4000])
+    messages.success(request, f"{len(products)} product{'s' if len(products) != 1 else ''} "
+                              "back on sale. They come up at the till again.")
+    return redirect("product_list")
 
 
 @admin_required

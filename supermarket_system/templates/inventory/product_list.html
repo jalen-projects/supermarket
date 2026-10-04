@@ -46,6 +46,10 @@
     <h2>{{ total_products }} product{{ total_products|pluralize }}</h2>
     {% if page.object_list %}
     <div class="spacer"></div>
+    {% if view == 'inactive' %}
+    <button type="submit" name="scope" value="selected" class="btn btn-sm" formaction="{% url 'product_bulk_restore' %}">Put ticked back on sale</button>
+    <button type="submit" name="scope" value="all" class="btn btn-sm" formaction="{% url 'product_bulk_restore' %}">Put all {{ total_products }} back on sale</button>
+    {% endif %}
     <button type="submit" name="scope" value="selected" class="btn btn-sm btn-danger-ghost">Delete ticked</button>
     <button type="submit" name="scope" value="all" class="btn btn-sm btn-danger-ghost">Delete all {{ total_products }} in this list</button>
     {% endif %}
