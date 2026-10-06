@@ -14,7 +14,7 @@
 // Stamped by the server from the files themselves (shop/views.py), so every
 // deploy that changes the look gets a new name here, and the old cache - the
 // old colours, the old screens - is thrown away the next time the app opens.
-var VERSION = 'maqam-__STAMP__';
+var VERSION = '__BRAND__-__STAMP__';
 var SHELL = ['/offline/'];
 
 self.addEventListener('install', function (event) {

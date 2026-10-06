@@ -16,7 +16,8 @@
         </div>
         <div class="scan-hint">
           A barcode scanner types here on its own. No scanner? Type a name and press
-          <kbd>Enter</kbd>. <kbd>F2</kbd> jumps back to this box, <kbd>F9</kbd> completes the sale.
+          <kbd>Enter</kbd>. <kbd>F2</kbd> jumps back to this box, <kbd>F8</kbd> holds the sale,
+          <kbd>F9</kbd> completes it.
         </div>
       </div>
     </div>
@@ -69,6 +70,23 @@
 
   <!-- RIGHT: customer, payment, total -->
   <div>
+    {% comment %}
+      Baskets on hold - every till's, because a customer who went back for
+      the bigger tin may come back to a different counter. At the top of the
+      column so a waiting basket is never scrolled out of sight. Filled in
+      by pos.js; hidden until something is held.
+    {% endcomment %}
+    <div class="card held-card" id="held-card" hidden>
+      <div class="card-head">
+        <h2>On hold</h2>
+        <div class="spacer"></div>
+        <span class="faint" id="held-count"></span>
+      </div>
+      <div class="card-body tight">
+        <ul class="held-list" id="held-list"></ul>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-head"><h2>Payment</h2></div>
       <div class="card-body">
@@ -130,8 +148,10 @@
         <p class="faint" style="margin:.5rem 0 0;text-align:center">
           This takes the money, prints the receipt and removes the goods from stock.
         </p>
-        <div class="btn-row" style="margin-top:.5rem">
-          <button type="button" class="btn btn-block" id="clear">Clear the sale</button>
+        <div class="btn-row hold-row" style="margin-top:.5rem">
+          <button type="button" class="btn" id="hold" data-tour="hold"
+                  title="Park this basket while the customer fetches something, and serve the next person">Hold sale (F8)</button>
+          <button type="button" class="btn" id="clear">Clear the sale</button>
         </div>
         <div id="pos-error" class="msg msg-error" style="margin-top:.8rem" hidden></div>
         <div id="last-sale" class="msg msg-success" style="margin-top:.8rem" hidden></div>
@@ -149,11 +169,33 @@
   </div>
 </div>
 
-<div hidden id="cfg" data-user="{{ user.pk }}"
+<div hidden id="cfg" data-user="{{ user.pk }}" data-store="{{ brand.key }}"
      data-currency="{{ currency }}"
      data-vat="{{ vat_percent|default:0 }}"
      data-lookup="{% url 'product_lookup' %}"
-     data-checkout="{% url 'pos_checkout' %}"></div>
+     data-checkout="{% url 'pos_checkout' %}"
+     data-held="{% url 'held_sales' %}"></div>
+
+{% comment %}
+  "Hold sale": one optional box, so a cashier with a queue can press F8 and
+  Enter and be done. Without a name the basket is called Held 1, Held 2...
+{% endcomment %}
+<dialog class="hold-dialog" id="hold-dialog" aria-labelledby="hold-title">
+  <form method="dialog" id="hold-form">
+    <h2 id="hold-title">Hold this sale</h2>
+    <p class="muted">The items are kept aside so you can serve the next customer.
+      Bring them back from <strong>On hold</strong> when the customer returns.</p>
+    <div class="field">
+      <label for="hold-label">Customer's name <span class="faint">- optional</span></label>
+      <input type="text" id="hold-label" class="input" maxlength="60" autocomplete="off"
+             placeholder="e.g. Lady in the red dress">
+    </div>
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary" value="hold">Hold the sale</button>
+      <button type="button" class="btn" id="hold-cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
 {% csrf_token %}
 {% endblock %}
 

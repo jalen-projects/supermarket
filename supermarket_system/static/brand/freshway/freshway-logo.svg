@@ -1,0 +1,13 @@
+<!-- FRESHWAY SUPERMARKET, NAKAWA - primary mark (the demonstration shop).
+     An F drawn as one shoot that rises and turns into its top bar, with an
+     orange on the end of its middle bar. Green and orange on transparent,
+     like MAQAM's: the sidebar puts a white chip behind it, and a solid tile
+     prints heavy on a thermal roll. freshway-icon.svg is the filled tile. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="97 94 318 318" width="512" height="512" role="img" aria-label="FreshWay Supermarket">
+  <g fill="none" stroke="#256b40" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M170 388 V216 A80 80 0 0 1 250 136 H340"/>
+    <path d="M170 264 H262"/>
+  </g>
+  <path d="M296 264 A36 36 0 1 0 368 264 A36 36 0 1 0 296 264 Z" fill="#df6a22"/>
+  <path d="M333 228 C334 210 346 198 366 196 C364 214 352 226 333 228 Z" fill="#256b40"/>
+</svg>

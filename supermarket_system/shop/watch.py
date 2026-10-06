@@ -221,7 +221,7 @@ def _short(shop):
 
 
 def _host():
-    return getattr(settings, "PUBLIC_HOSTNAME", "") or "maqam.campusnect.com"
+    return getattr(settings, "PUBLIC_HOSTNAME", "") or "localhost"
 
 
 # ---------------------------------------------------------------------------

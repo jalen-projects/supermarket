@@ -2,15 +2,20 @@ import json
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Count, Q, Sum
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
 
 from inventory.models import Category, Product
 from shop.models import ShopSettings
@@ -18,8 +23,9 @@ from shop import audit
 from shop.models import AuditEvent
 from shop.permissions import admin_required
 
+from . import qr
 from .forms import CashUpForm, CustomerForm, OpenDrawerForm
-from .models import Customer, InsufficientStock, Sale, Shift
+from .models import Customer, HeldSale, InsufficientStock, Sale, Shift
 from .services import close_shift, current_shift, open_shift, record_sale
 
 
@@ -161,10 +167,197 @@ def receipt(request, pk):
     if not request.user.is_admin and sale.served_by_id != request.user.id:
         messages.error(request, "You can only print your own receipts.")
         return redirect("sale_list")
-    width = request.GET.get("width") or ShopSettings.get().receipt_width
+    shop = ShopSettings.get()
+    width = request.GET.get("width") or shop.receipt_width
     return render(request, "sales/receipt.html", {
         "sale": sale, "items": sale.items.all(), "width": width,
+        "qr_svg": qr.svg(receipt_qr_text(request, sale, shop)),
+        "qr_is_link": bool(getattr(settings, "ONLINE", False)),
         "auto_print": request.GET.get("print") == "1"})
+
+
+def receipt_qr_text(request, sale, shop):
+    """What the QR code on a printed receipt says.
+
+    ONLINE it is a link to the receipt's public check page, so a customer, a
+    guard at the door or the owner can scan the slip and see it is genuine -
+    and whether it was voided after it was printed, which is how a refunded
+    receipt gets used twice. OFFLINE there is nothing on the internet to
+    point at, so it carries the receipt's essentials as plain text instead;
+    any phone camera shows them.
+    """
+    if getattr(settings, "ONLINE", False):
+        if not sale.verify_token:
+            sale.save(update_fields=["verify_token"])   # save() makes one
+        path = reverse("receipt_verify", args=[sale.verify_token])
+        host = getattr(settings, "PUBLIC_HOSTNAME", "")
+        return f"https://{host}{path}" if host else request.build_absolute_uri(path)
+    lines = [
+        shop.company_name,
+        f"Receipt {sale.receipt_no}",
+        f"{timezone.localtime(sale.created_at):%d/%m/%Y %H:%M}",
+        f"Total {shop.currency} {sale.total:,.0f}",
+    ]
+    if sale.status == Sale.Status.VOIDED:
+        lines.append("VOIDED")
+    return "\n".join(lines)
+
+
+@never_cache
+def receipt_verify(request, token):
+    """The page the receipt's QR code opens. PUBLIC - no sign-in - and so it
+    shows only what is already printed on the slip in the customer's hand:
+    the shop, the receipt number, when, the items and the total, and whether
+    it has been voided since. No buying prices, no customer, nothing about
+    the cashier beyond a first name."""
+    if not token or len(token) > 24:
+        raise Http404
+    sale = (Sale.objects.select_related("served_by")
+            .filter(verify_token=token).first())
+    if sale is None:
+        raise Http404
+    response = render(request, "sales/receipt_verify.html", {
+        "sale": sale, "items": sale.items.all(),
+        "served_by": (sale.served_by.first_name or "").strip() or None,
+    })
+    # A receipt is nobody's business but the holder's: keep it out of search
+    # engines even if somebody posts the link.
+    response["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Held baskets - "Hold sale" at the till (see HeldSale)
+# ---------------------------------------------------------------------------
+#: A basket nobody came back for in two days is not coming back.
+HELD_KEEP_HOURS = 48
+
+
+def _held_row(hold, user):
+    held_at = timezone.localtime(hold.held_at)
+    return {
+        "id": hold.id, "label": hold.label,
+        "held_by": hold.held_by.display_name, "mine": hold.held_by_id == user.id,
+        "held_at": held_at.strftime("%H:%M"),
+        "today": held_at.date() == timezone.localdate(),
+        "items": hold.item_count, "total": str(hold.total),
+        "customer": hold.customer.name if hold.customer_id else "",
+    }
+
+
+def _next_auto_label():
+    """'Held 1', 'Held 2' ... the lowest number not already on hold, so the
+    labels stay short however busy the day gets."""
+    taken = set()
+    for label in HeldSale.objects.values_list("label", flat=True):
+        head, _, number = label.partition(" ")
+        if head == "Held" and number.isdigit():
+            taken.add(int(number))
+    n = 1
+    while n in taken:
+        n += 1
+    return f"Held {n}"
+
+
+@login_required
+def held_sales(request):
+    """GET: every basket on hold in the shop, oldest first - a customer may
+    come back to a different till. POST: hold the basket sent as JSON."""
+    HeldSale.objects.filter(
+        held_at__lt=timezone.now() - timedelta(hours=HELD_KEEP_HOURS)).delete()
+
+    if request.method == "POST":
+        try:
+            payload = json.loads(request.body.decode())
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"ok": False, "error": "Could not read the basket."}, status=400)
+        lines, total = [], Decimal("0")
+        for raw in payload.get("lines") or []:
+            product = Product.objects.filter(pk=raw.get("product_id")).first()
+            try:
+                qty = Decimal(str(raw.get("quantity")))
+                price = Decimal(str(raw.get("unit_price")))
+            except (InvalidOperation, TypeError):
+                continue
+            if product is None or not qty.is_finite() or not price.is_finite() \
+                    or qty <= 0 or price < 0:
+                continue
+            lines.append({"id": product.id, "qty": str(qty), "price": str(price),
+                          "list_price": str(product.selling_price)})
+            total += qty * price
+        if not lines:
+            return JsonResponse({"ok": False, "error": "There is nothing to hold."}, status=400)
+        customer = None
+        if payload.get("customer_id"):
+            customer = Customer.objects.filter(pk=payload["customer_id"]).first()
+        label = " ".join(str(payload.get("label") or "").split())[:60] or _next_auto_label()
+        hold = HeldSale.objects.create(
+            label=label, held_by=request.user, customer=customer, lines=lines,
+            item_count=len(lines), total=total.quantize(Decimal("0.01")))
+        return JsonResponse({"ok": True, "held": _held_row(hold, request.user)})
+
+    holds = HeldSale.objects.select_related("held_by", "customer")
+    return JsonResponse({"ok": True,
+                         "held": [_held_row(h, request.user) for h in holds]})
+
+
+@login_required
+@require_POST
+def held_recall(request, pk):
+    """Bring a held basket back to the till. It is deleted in the same
+    transaction, so a second till pressing the same button a moment later
+    is told it has gone rather than getting a copy to charge again. From
+    here the basket is the till's live basket, which the browser keeps
+    through a reload until it is cashed out or cleared.
+
+    Prices come back as TODAY's price unless the cashier had typed a
+    different one when it was held; anything taken off sale since is left
+    out and named, so the cashier can tell the customer. Stock is checked,
+    as for every sale, when it is cashed out."""
+    with transaction.atomic():
+        hold = HeldSale.objects.filter(pk=pk).select_related("customer").first()
+        if hold is None or not HeldSale.objects.filter(pk=hold.pk).delete()[0]:
+            return JsonResponse({"ok": False, "error": (
+                "That basket is no longer on hold - it was brought back on "
+                "another till, or discarded.")}, status=404)
+
+    products = {p.id: p for p in Product.objects.select_related("unit")
+                .filter(pk__in=[line.get("id") for line in hold.lines])}
+    lines, notes = [], []
+    for line in hold.lines:
+        product = products.get(line.get("id"))
+        if product is None or not product.is_active:
+            notes.append(f"{product.name if product else 'An item'} is no longer on sale "
+                         "and was left out.")
+            continue
+        price = Decimal(line["price"])
+        if Decimal(line.get("list_price", line["price"])) == price \
+                and price != product.selling_price:
+            notes.append(f"{product.name}: the price is now "
+                         f"{product.selling_price:,.0f} (it was {price:,.0f} when held).")
+            price = product.selling_price
+        lines.append({"id": product.id, "name": product.name, "price": float(price),
+                      "qty": float(Decimal(line["qty"])), "unit": str(product.unit),
+                      "dec": product.unit.allow_decimals,
+                      "stock": str(product.sellable_quantity)})
+    return JsonResponse({"ok": True, "label": hold.label, "lines": lines,
+                         "customer_id": hold.customer_id, "notes": notes})
+
+
+@login_required
+@require_POST
+def held_discard(request, pk):
+    """The customer is not coming back. Only the cashier who held it, or the
+    owner, can throw it away."""
+    hold = HeldSale.objects.filter(pk=pk).select_related("held_by").first()
+    if hold is None:
+        return JsonResponse({"ok": True})
+    if hold.held_by_id != request.user.id and not request.user.is_admin:
+        return JsonResponse({"ok": False, "error": (
+            f"Only {hold.held_by.display_name} or the manager can discard this basket.")},
+            status=403)
+    hold.delete()
+    return JsonResponse({"ok": True})
 
 
 @admin_required

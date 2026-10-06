@@ -66,7 +66,7 @@ def _sms_text(shop_name, code):
     return f"{code} is your {shop_name} sign-in code. It expires in 5 minutes. Never share it."
 
 
-def send_code(user, shop_name="MAQAM"):
+def send_code(user, shop_name="Shop"):
     """Issue a code and deliver it. Returns the SignInCode; raises Refused."""
     number = services.normalise_phone(getattr(user, "phone", ""))
     if not user.is_admin and not number and not user.email:

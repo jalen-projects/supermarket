@@ -59,7 +59,7 @@ class CodeLoginView(LoginView):
 
 
 def _short_name(shop):
-    return (shop.company_name or "MAQAM").split()[0]
+    return (shop.company_name or "Shop").split()[0]
 
 
 def code_step(request):

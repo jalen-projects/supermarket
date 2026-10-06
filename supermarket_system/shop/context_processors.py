@@ -1,5 +1,6 @@
 from django.conf import settings
 
+from . import brand
 from .models import ShopSettings
 
 #: The hosting reminder appears this many days before the year runs out.
@@ -12,7 +13,10 @@ def shop_settings(request):
     """
     settings_obj = ShopSettings.get()
     online = getattr(settings, "ONLINE", False)
-    ctx = {"shop": settings_obj, "currency": settings_obj.currency, "online": online}
+    ctx = {"shop": settings_obj, "currency": settings_obj.currency, "online": online,
+           # The drawn half of the shop's identity - see shop/brand.py.
+           "brand": brand.current(),
+           "demo": getattr(settings, "DEMO", False)}
 
     # The yearly hosting reminder. Online only - the shop's own computer is
     # not hosted by anybody - and only for the owner, who is the one paying.

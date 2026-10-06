@@ -9,6 +9,10 @@ It sits beside CampusNect and shares nothing with it: its own Linux user
 (`maqam`, on `127.0.0.1:8077`) and its own nginx site. Restarting one never
 touches the other.
 
+**A second shop runs beside it the same way:** the FreshWay demonstration
+shop at `supermarket.campusnect.com` (user `smdemo`, port 8078). Its set-up is
+in **DEPLOY-DEMO.md**; nothing in it touches MAQAM.
+
 **Already true, checked on 1 Oct 2026 — nothing to do:**
 - **DNS.** `maqam.campusnect.com` already resolves to 205.209.125.253 (the
   `*` wildcard record covers it). No new record is needed.

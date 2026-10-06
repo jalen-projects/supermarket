@@ -34,6 +34,12 @@ td.n, th.n { text-align: right; white-space: nowrap; }
     /* Deliberately smaller than the shop's own message. On an 80mm roll
        every millimetre is paper the shop pays for. */
     .powered { margin-top: 6px; font-size: .74em; opacity: .75; }
+/* The QR code. Sized in millimetres by sales/qr.py so each square is a
+   whole number of the printer's dots; never scaled here, or it blurs. */
+.qr { margin: 8px auto 0; text-align: center; }
+.qr svg { display: block; margin: 0 auto; }
+.qr-cap { font-size: .8em; margin-top: 2px; }
+.demo-note { margin-top: 4px; font-size: .85em; font-weight: 700; letter-spacing: .04em; }
 .void {
   border: 2px solid #000; padding: 4px; text-align: center; font-weight: 700;
   letter-spacing: .1em; margin: 6px 0;
@@ -114,6 +120,17 @@ td.n, th.n { text-align: right; white-space: nowrap; }
     <div>{{ items|length }} item{{ items|length|pluralize }}</div>
     <div>{{ shop.receipt_footer }}</div>
     {% if shop.email %}<div>{{ shop.email }}</div>{% endif %}
+    {% if demo %}<div class="demo-note">DEMONSTRATION SHOP - NOT A REAL SALE</div>{% endif %}
+  </div>
+
+  {% if qr_svg %}
+  <div class="qr">
+    {{ qr_svg|safe }}
+    <div class="qr-cap">{% if qr_is_link %}Scan to check this receipt{% else %}Scan for the receipt details{% endif %}</div>
+  </div>
+  {% endif %}
+
+  <div class="center foot">
     <div class="powered">Powered by CampusNect Smart Technologies</div>
   </div>
 </div>

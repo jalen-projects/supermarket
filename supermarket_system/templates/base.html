@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ shop.company_name }}{% endblock %}</title>
-  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static brand.favicon %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% include "partials/app_head.html" %}
   {% block head %}{% endblock %}
@@ -17,7 +17,7 @@
       {% else %}<div class="brand-mark">{{ shop.company_name|slice:":2"|upper }}</div>{% endif %}
       <div>
         <div class="brand-name">{{ shop.company_name }}</div>
-        <div class="brand-sub">Management system</div>
+        <div class="brand-sub">Management system{% if demo %} <span class="demo-tag" title="A demonstration shop - every name and figure in it is made up">Demo</span>{% endif %}</div>
       </div>
     </div>
 
@@ -42,6 +42,7 @@
     <header class="m-top no-print">
       {% if shop.logo %}<img class="m-logo" src="{{ shop.logo.url }}" alt="">{% endif %}
       <span class="m-shop">{{ shop.company_name }}</span>
+      {% if demo %}<span class="demo-tag">Demo</span>{% endif %}
       {% if user.is_admin %}
         <a class="m-home{% if request.resolver_match.url_name == 'owner' %} active{% endif %}" href="{% url 'owner' %}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>
@@ -171,7 +172,7 @@
   {% csrf_token %}
   <script src="{% static 'js/tour.js' %}"></script>
   {% if request.resolver_match.url_name != 'owner' %}
-  <div hidden id="till-cfg" data-url="{% url 'till_check_in' %}" data-csrf="{{ csrf_token }}"
+  <div hidden id="till-cfg" data-store="{{ brand.key }}" data-url="{% url 'till_check_in' %}" data-csrf="{{ csrf_token }}"
        data-user="{{ user.display_name }}"></div>
   <script src="{% static 'js/till.js' %}"></script>
   {% endif %}

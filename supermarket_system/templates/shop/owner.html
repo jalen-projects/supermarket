@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>My shop - {{ shop.company_name }}</title>
-  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static brand.favicon %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'css/login.css' %}">
   <link rel="stylesheet" href="{% static 'css/owner.css' %}">
   {% include "partials/app_head.html" %}
@@ -21,9 +21,9 @@
 <header class="ow-head">
   <svg class="ow-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
     <g fill="none" stroke="currentColor" stroke-width="40" stroke-linecap="round">
-      <path d="M150 326 V190 A53 53 0 0 1 256 190 V326"/><path d="M256 190 A53 53 0 0 1 362 190 V326"/>
+      <path d="{{ brand.mark_a1 }}"/><path d="{{ brand.mark_a2 }}"/>
     </g>
-    <rect x="140" y="366" width="232" height="24" rx="12" fill="#e2662f"/>
+    <path d="{{ brand.mark_bar }}" fill="#e2662f"/>
   </svg>
   <div class="ow-head-text">
     <p class="ow-shop">{{ shop.company_name }}</p>

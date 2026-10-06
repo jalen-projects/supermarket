@@ -1,3 +1,4 @@
+import secrets
 from decimal import Decimal
 
 from django.conf import settings
@@ -74,6 +75,13 @@ class Sale(models.Model):
 
     note = models.CharField(max_length=200, blank=True)
 
+    # What the QR code on the printed receipt points at, online: anybody
+    # holding the slip can open /r/<token>/ and see that the receipt is real
+    # and whether it has since been voided. Random rather than the receipt
+    # number, so nobody can walk the shop's sales by counting upwards.
+    verify_token = models.CharField(
+        max_length=24, unique=True, null=True, blank=True, editable=False)
+
     class Meta:
         ordering = ["-created_at", "-id"]
 
@@ -83,6 +91,8 @@ class Sale(models.Model):
     def save(self, *args, **kwargs):
         if not self.receipt_no:
             self.receipt_no = self._next_receipt_no()
+        if not self.verify_token:
+            self.verify_token = new_verify_token()
         super().save(*args, **kwargs)
 
     @staticmethod
@@ -152,6 +162,12 @@ class Sale(models.Model):
         self.voided_by = user
         self.void_reason = reason
         self.save(update_fields=["status", "voided_at", "voided_by", "void_reason"])
+
+
+def new_verify_token():
+    """16 characters, 96 random bits: short enough to keep the QR code small
+    on the roll, far too many to guess."""
+    return secrets.token_urlsafe(12)
 
 
 class SaleItem(models.Model):
@@ -347,3 +363,42 @@ class Shift(models.Model):
         minutes = int((end - self.opened_at).total_seconds() // 60)
         hours, mins = divmod(minutes, 60)
         return f"{hours}h {mins:02d}m"
+
+
+class HeldSale(models.Model):
+    """A basket parked at the till ("Hold sale").
+
+    The customer has gone back for something - a different size, the item
+    they forgot - and the queue cannot wait. The cashier holds the basket,
+    serves the next people, and brings it back when the customer returns.
+
+    KEPT ON THE SERVER, NOT IN THE BROWSER. The live basket already survives
+    a reload in the browser; a held one has to survive more than that: the
+    cashier going on break and the customer returning to the next till, a
+    till computer restarted, a second cashier taking over the counter.
+    Nothing here touches stock or money - a held basket is a list of what
+    was scanned, and the sale is written, with today's prices and stock
+    checked again, only when it is brought back and cashed out.
+
+    Bringing it back deletes it in the same moment (see sales.views
+    held_recall), so two tills can never both restore the same basket and
+    charge for it twice.
+    """
+
+    label = models.CharField(max_length=60)
+    held_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="held_sales")
+    held_at = models.DateTimeField(default=timezone.now, db_index=True)
+    customer = models.ForeignKey(
+        Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    # [{"id": product id, "qty": "1.5", "price": "3500", "list_price": "3500"}]
+    # - quantities and prices as strings, so a half kilo stays exactly 0.5.
+    lines = models.JSONField(default=list)
+    item_count = models.PositiveIntegerField(default=0)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["held_at", "id"]
+
+    def __str__(self):
+        return f"{self.label} ({self.item_count} items)"

@@ -15,6 +15,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Sum
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import resolve_url, get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -22,7 +23,7 @@ from django.views.decorators.http import require_POST
 from inventory.models import Product, StockBatch, expired_batches, expiring_batches
 from sales.models import Sale
 
-from . import audit, services, watch
+from . import audit, brand, services, watch
 from .forms import (GuardedAuthenticationForm, PasswordResetForm, ShopSettingsForm,
                     UserEditForm, UserForm)
 from .models import AuditEvent, ShopSettings, Till, TillGap, User
@@ -474,9 +475,11 @@ def manifest(request):
         "background_color": "#1d1612",
         "theme_color": "#1d1612",
         "icons": [
-            {"src": "/static/brand/app-192.png", "sizes": "192x192", "type": "image/png"},
-            {"src": "/static/brand/app-512.png", "sizes": "512x512", "type": "image/png"},
-            {"src": "/static/brand/app-maskable-512.png", "sizes": "512x512",
+            # This shop's own icons (shop/brand.py), through static() so
+            # that online they carry the fingerprinted names.
+            {"src": static(brand.icon("app-192.png")), "sizes": "192x192", "type": "image/png"},
+            {"src": static(brand.icon("app-512.png")), "sizes": "512x512", "type": "image/png"},
+            {"src": static(brand.icon("app-maskable-512.png")), "sizes": "512x512",
              "type": "image/png", "purpose": "maskable"},
         ],
     })
@@ -490,7 +493,8 @@ def service_worker(request):
     only look after pages at or below the address it was loaded from."""
     path = django_settings.BASE_DIR / "static" / "js" / "sw.js"
     response = HttpResponse(
-        path.read_text(encoding="utf-8").replace("__STAMP__", _static_stamp()),
+        path.read_text(encoding="utf-8").replace("__STAMP__", _static_stamp())
+        .replace("__BRAND__", brand.current()["key"]),
         content_type="application/javascript")
     # Never kept: a phone must always be able to learn there is a new version.
     response["Cache-Control"] = "no-cache"

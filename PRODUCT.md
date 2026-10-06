@@ -27,6 +27,7 @@ A busy Ugandan supermarket on a highway; bright shop lighting, shared PCs, a que
 - **1 Oct 2026, client decision: the brand colour becomes ORANGE across the whole system, logo included** (a rich orange, not a yellowish one). Green is retired as the primary.
 - Wording on the sign-in page stays as it is.
 - Every screen carries "Powered by CampusNect Smart Technologies"; receipts carry it as text only.
+- **The same code runs a second shop**: the FreshWay Supermarket demonstration shop (supermarket.campusnect.com, fictional, `SMMS_BRAND=freshway`, `SMMS_DEMO=1`). Names and addresses come from Shop details; everything drawn (the mark, app icons, opening animation, browser storage names) comes from `shop/brand.py`. Nothing MAQAM-specific may be hard-coded in a template or script.
 
 ## Evidence on Hand
 - Real shop identity: name, address (Kampala - Gulu Highway), phone +256 703 649411.

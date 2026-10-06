@@ -1,0 +1,13 @@
+<!-- FreshWay - the mark reversed out of a green tile, for signage, a
+     WhatsApp picture and the phone app. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="FreshWay Supermarket">
+  <rect width="512" height="512" rx="112" fill="#256b40"/>
+  <g transform="translate(256 256) scale(1.06) translate(-259 -262)">
+    <g fill="none" stroke="#ffffff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M170 388 V216 A80 80 0 0 1 250 136 H340"/>
+      <path d="M170 264 H262"/>
+    </g>
+    <path d="M296 264 A36 36 0 1 0 368 264 A36 36 0 1 0 296 264 Z" fill="#f08a3c"/>
+    <path d="M333 228 C334 210 346 198 366 196 C364 214 352 226 333 228 Z" fill="#a7d9b2"/>
+  </g>
+</svg>

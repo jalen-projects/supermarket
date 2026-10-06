@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.static import serve as serve_media
 
+from sales.views import receipt_verify
 from sms.views import CodeLoginView
 
 urlpatterns = [
@@ -14,6 +15,9 @@ urlpatterns = [
     path("inventory/", include("inventory.urls")),
     path("sales/", include("sales.urls")),
     path("reports/", include("reports.urls")),
+    # The receipt's QR code. Short on purpose: every character is printed as
+    # part of the code on the roll, and a shorter link is a smaller square.
+    path("r/<str:token>/", receipt_verify, name="receipt_verify"),
 ]
 
 # The shop's logo is an upload, so it lives in media/ rather than static/ and

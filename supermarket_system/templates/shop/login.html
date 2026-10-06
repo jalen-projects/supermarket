@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Sign in - {{ shop.company_name }}</title>
-  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static brand.favicon %}" type="image/svg+xml">
   <link rel="preload" href="{% static 'fonts/bricolage-grotesque-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/login.css' %}">
   {% include "partials/app_head.html" %}
@@ -37,10 +37,10 @@
   <section class="si-brand" aria-label="{{ shop.company_name }}">
     <svg class="si-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
       <g fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
-        <path class="arch arch-1" pathLength="1" d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
-        <path class="arch arch-2" pathLength="1" d="M256 190 A53 53 0 0 1 362 190 V326"/>
+        <path class="arch arch-1" pathLength="1" d="{{ brand.mark_a1 }}"/>
+        <path class="arch arch-2" pathLength="1" d="{{ brand.mark_a2 }}"/>
       </g>
-      <rect class="counter" x="140" y="366" width="232" height="22" rx="11" fill="currentColor"/>
+      <path class="counter" d="{{ brand.mark_bar }}" fill="currentColor"/>
     </svg>
     <p class="si-name">{{ shop.company_name }}</p>
     {% if shop.tagline %}<p class="si-tagline">{{ shop.tagline }}</p>{% endif %}
@@ -51,15 +51,16 @@
       <div class="si-rhead">
         <svg class="si-rmark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
           <g fill="none" stroke="currentColor" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M150 326 V190 A53 53 0 0 1 256 190 V326"/><path d="M256 190 A53 53 0 0 1 362 190 V326"/>
+            <path d="{{ brand.mark_a1 }}"/><path d="{{ brand.mark_a2 }}"/>
           </g>
-          <rect x="140" y="366" width="232" height="26" rx="13" fill="currentColor"/>
+          <path d="{{ brand.mark_bar }}" fill="currentColor"/>
         </svg>
       </div>
       <dl class="si-facts">
         <div><dt>Today</dt><dd>{{ trading_day|date:"l j F" }}</dd></div>
         <div><dt>Open</dt><dd>{{ shop.opens_at|time:"H:i" }} &ndash; {{ shop.closes_at|time:"H:i" }}</dd></div>
         {% if shop.address %}<div><dt>Shop</dt><dd>{{ shop.address }}</dd></div>{% endif %}
+        {% if demo %}<div><dt>Demo</dt><dd>A demonstration shop. Every name and figure is made up.</dd></div>{% endif %}
       </dl>
 
       <h1 class="si-title">{{ greeting }}.</h1>

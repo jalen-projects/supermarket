@@ -94,6 +94,17 @@ input, textarea { caret-color: var(--brand); }
 }
 .brand-name { color: #fff; font-family: var(--display); font-weight: 700; font-stretch: 90%; font-size: 1rem; line-height: 1.1; }
 .brand-sub { font-size: .7rem; color: #a08f85; text-transform: uppercase; letter-spacing: .07em; }
+/* The demonstration shop says so, quietly, wherever its name appears: a
+   stamped label in the receipt's own voice rather than a banner, because
+   the point of a demo is to look like the real thing. */
+.demo-tag {
+  display: inline-block; margin-left: .3rem; padding: 0 .35rem;
+  border: 1px dashed currentColor; border-radius: 4px;
+  font-family: var(--mono); font-size: .62rem; line-height: 1.5;
+  letter-spacing: .1em; text-transform: uppercase; color: #e9d4c7;
+  vertical-align: 1px;
+}
+.m-top .demo-tag { flex: none; margin: 0; }
 
 .nav { padding: .6rem 0; flex: 1; }
 .nav-label {
@@ -447,6 +458,27 @@ textarea.input { min-height: 80px; resize: vertical; }
 }
 .quick-btn:hover { border-color: var(--brand); background: var(--brand-wash); }
 .quick-btn .p { display: block; color: var(--ink); font-family: var(--mono); font-size: .85em; font-weight: 600; margin-top: .15rem; font-variant-numeric: tabular-nums; }
+
+/* Hold sale. The two buttons share the row; the held baskets are a plain
+   list - who, how much, how long ago - with the way back on each line. */
+.hold-row .btn { flex: 1 1 0; }
+.held-list { list-style: none; margin: 0; padding: 0; }
+.held-item {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .65rem 1.15rem; border-top: 1px solid var(--line-soft);
+}
+.held-item:first-child { border-top: 0; }
+.held-main { flex: 1; min-width: 0; display: grid; gap: .1rem; }
+.held-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.held-meta { font-size: .78rem; color: var(--ink-faint); }
+.held-total { font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hold-dialog {
+  width: min(26rem, calc(100vw - 2rem)); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 1.15rem 1.25rem; box-shadow: 0 24px 60px -24px rgba(29, 22, 18, .55);
+}
+.hold-dialog::backdrop { background: rgba(29, 22, 18, .45); }
+.hold-dialog h2 { margin: 0 0 .35rem; }
+.hold-dialog .btn-row { margin-top: .9rem; }
 
 kbd {
   font-family: var(--mono); font-size: .75rem; padding: .1rem .35rem; border-radius: 4px;

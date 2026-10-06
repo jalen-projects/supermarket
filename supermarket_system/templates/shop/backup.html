@@ -56,7 +56,7 @@
   <div class="card-body">
     {% if drives %}
       <p class="muted">Plug the flash disk in, then choose its letter. The copy goes into a
-        folder called <span class="mono">MAQAM BACKUPS</span> on the disk.</p>
+        folder called <span class="mono">{{ brand.backup_folder }}</span> on the disk.</p>
       <form method="post">
         {% csrf_token %}
         <div class="field">

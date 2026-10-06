@@ -149,7 +149,8 @@ def copy_backup_to(drive, backup=None):
     if backup is None:
         raise FileNotFoundError("There is no backup to copy yet.")
 
-    folder = Path(drive) / "MAQAM BACKUPS"
+    from .brand import current
+    folder = Path(drive) / current()["backup_folder"]
     folder.mkdir(parents=True, exist_ok=True)
     target = folder / backup.name
     shutil.copy2(backup, target)

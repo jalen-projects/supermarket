@@ -1,6 +1,6 @@
 {% comment %}
   The app's opening: a seed falls, sprouts, and the shoot becomes a trolley
-  that fills with shopping; the trolley folds into the MAQAM mark and the
+  that fills with shopping; the trolley folds into the shop's mark and the
   screen opens. About three and a half seconds, once per visit (not on every
   page), tap anywhere to skip. Without JavaScript, or with motion reduced,
   it never shows - the page underneath is always whole.
@@ -9,9 +9,9 @@
   (function () {
     try {
       var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduce && !sessionStorage.getItem('maqam-intro')) {
+      if (!reduce && !sessionStorage.getItem('{{ brand.key }}-intro')) {
         document.documentElement.classList.add('play-intro');
-        sessionStorage.setItem('maqam-intro', '1');
+        sessionStorage.setItem('{{ brand.key }}-intro', '1');
       }
     } catch (e) {}
   })();
@@ -44,10 +44,10 @@
     </g>
     <g class="ai-mark" transform="translate(535 1000) scale(1.15) translate(-256 -278)">
       <g fill="none" stroke="#fff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
-        <path class="ai-arch ai-a1" pathLength="1" d="M150 326 V190 A53 53 0 0 1 256 190 V326"/>
-        <path class="ai-arch ai-a2" pathLength="1" d="M256 190 A53 53 0 0 1 362 190 V326"/>
+        <path class="ai-arch ai-a1" pathLength="1" d="{{ brand.mark_a1 }}"/>
+        <path class="ai-arch ai-a2" pathLength="1" d="{{ brand.mark_a2 }}"/>
       </g>
-      <rect class="ai-counter" x="140" y="366" width="232" height="22" rx="11" fill="#e2662f"/>
+      <path class="ai-counter" d="{{ brand.mark_bar }}" fill="#e2662f"/>
     </g>
   </svg>
   <p class="ai-name">{{ shop.company_name }}</p>

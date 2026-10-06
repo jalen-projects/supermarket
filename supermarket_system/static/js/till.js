@@ -12,13 +12,16 @@
   var cfg = document.getElementById('till-cfg');
   if (!cfg || !window.fetch) return;
 
+  // Each shop keeps its own names in the browser (shop/brand.py) - MAQAM's
+  // are 'maqam.*', exactly as they always were, so no till is forgotten.
+  var STORE = cfg.getAttribute('data-store') || 'maqam';
   var key;
   try {
-    key = localStorage.getItem('maqam.till');
+    key = localStorage.getItem(STORE + '.till');
     if (!key) {
       key = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
         : String(Date.now()) + Math.random().toString(16).slice(2);
-      localStorage.setItem('maqam.till', key);
+      localStorage.setItem(STORE + '.till', key);
     }
   } catch (e) {
     key = 'tmp-' + String(Date.now()) + Math.random().toString(16).slice(2);

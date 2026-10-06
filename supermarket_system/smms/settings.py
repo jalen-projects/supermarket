@@ -45,6 +45,19 @@ if os.environ.get("SMMS_ENV_FILE"):
 # Are we the public demo rather than the shop's own machine?
 ONLINE = os.environ.get("SMMS_ONLINE", "0") == "1"
 
+# WHICH SHOP THIS COPY IS. The same code runs more than one shop on the same
+# server - MAQAM at maqam.campusnect.com, the FreshWay demonstration shop at
+# supermarket.campusnect.com - and everything that is drawn rather than typed
+# in (the mark on the sign-in page, the phone-app icons, the opening
+# animation, the browser storage names) comes from shop/brand.py by this name.
+# Unset means MAQAM, so his shop PC and his server need nothing new.
+SHOP_BRAND = os.environ.get("SMMS_BRAND", "maqam").strip().lower() or "maqam"
+
+# A demonstration shop: fictional data that prospective clients click about
+# in. It shows a "Demo" marker, and it can never send a text message,
+# whatever else is in its settings file (see SMS_CONFIGURED below).
+DEMO = os.environ.get("SMMS_DEMO", "0") == "1"
+
 # ---------------------------------------------------------------------------
 # Security
 # ---------------------------------------------------------------------------
@@ -285,7 +298,12 @@ SMS_KEY = os.environ.get("MAQAM_SMS_KEY", "").strip()
 SMS_SENDER = os.environ.get("MAQAM_SMS_SENDER", "").strip()
 # Until this is 1 every message is recorded and costed, and nothing leaves.
 SMS_LIVE = os.environ.get("MAQAM_SMS_LIVE", "0") == "1"
-SMS_CONFIGURED = ONLINE and bool(SMS_USERNAME and SMS_KEY and SMS_SENDER)
+# Never on the demonstration shop: its customers and cashiers are invented,
+# but a phone number typed in by a visitor is somebody's real phone.
+SMS_CONFIGURED = (ONLINE and not DEMO
+                  and bool(SMS_USERNAME and SMS_KEY and SMS_SENDER))
+if DEMO:
+    SMS_LIVE = False
 # What one page costs the shop, in UGX - the same as St Lucia and Team.
 SMS_PRICE = int(os.environ.get("MAQAM_SMS_PRICE", "45") or 45)
 # The owner's phone(s) for the till alerts, comma-separated.

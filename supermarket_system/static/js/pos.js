@@ -27,7 +27,8 @@
   // refresh, a mis-click on the menu or a dropped connection emptied it and
   // it looked as if the system deleted items on its own. Now it is kept in
   // this browser, per cashier, until the sale is completed or cleared.
-  var CART_KEY = 'maqam.cart.' + (cfg.dataset.user || 'till');
+  var STORE = cfg.dataset.store || 'maqam';   // this shop's prefix, shop/brand.py
+  var CART_KEY = STORE + '.cart.' + (cfg.dataset.user || 'till');
   function saveCart() {
     try {
       if (cart.length) localStorage.setItem(CART_KEY, JSON.stringify(cart));
@@ -443,10 +444,184 @@
     scan.focus();
   });
 
+  // ---- hold / bring back ("park the basket") -----------------------------
+  // A customer goes back for the bigger tin; the queue cannot wait. The
+  // basket is held ON THE SERVER (see HeldSale) so it is still there after
+  // a break, a restart, or when the customer comes back to another till.
+  var HELD = cfg.dataset.held;
+  var heldCard = document.getElementById('held-card');
+  var heldList = document.getElementById('held-list');
+  var holdDialog = document.getElementById('hold-dialog');
+  var holdLabel = document.getElementById('hold-label');
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify(body || {})
+    }).then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok && d.ok, d: d }; });
+    });
+  }
+
+  function emptyTheTill() {
+    cart = [];
+    document.getElementById('paid').value = '';
+    document.getElementById('discount').value = '0';
+    document.getElementById('customer').value = '';
+    render();
+  }
+
+  function drawHeld(list) {
+    heldList.innerHTML = '';
+    heldCard.hidden = !list.length;
+    document.getElementById('held-count').textContent =
+      list.length + (list.length === 1 ? ' basket' : ' baskets');
+    list.forEach(function (h) {
+      var li = document.createElement('li');
+      li.className = 'held-item';
+      li.innerHTML =
+        '<div class="held-main"><strong>' + escapeHtml(h.label) + '</strong>' +
+        '<span class="held-meta">' + h.items + (h.items === 1 ? ' item' : ' items') +
+        ' &middot; held ' + (h.today ? '' : 'yesterday ') + escapeHtml(h.held_at) +
+        (h.mine ? '' : ' by ' + escapeHtml(h.held_by)) +
+        (h.customer ? ' &middot; ' + escapeHtml(h.customer) : '') + '</span></div>' +
+        '<span class="held-total">' + money(parseFloat(h.total)) + '</span>';
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'btn btn-sm btn-primary';
+      back.textContent = 'Bring back';
+      back.addEventListener('click', function () { bringBack(h); });
+      var drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'x-btn';
+      drop.title = 'Discard - the customer is not coming back';
+      drop.setAttribute('aria-label', 'Discard ' + h.label);
+      drop.textContent = '×';
+      drop.addEventListener('click', function () { discard(h); });
+      li.append(back, drop);
+      heldList.appendChild(li);
+    });
+  }
+
+  function refreshHeld() {
+    if (!HELD) return Promise.resolve();
+    return fetch(HELD, { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d.ok) drawHeld(d.held); })
+      .catch(function () { /* offline for a moment - the list waits */ });
+  }
+
+  // Resolves with the held basket, or rejects with the reason.
+  function holdCurrent(label) {
+    return postJson(HELD, {
+      label: label || '',
+      customer_id: document.getElementById('customer').value || null,
+      lines: cart.map(function (l) {
+        return { product_id: l.id, quantity: l.qty, unit_price: l.price };
+      })
+    }).then(function (res) {
+      if (!res.ok) throw new Error(res.d.error || 'The sale could not be held.');
+      emptyTheTill();
+      return res.d.held;
+    });
+  }
+
+  function askToHold() {
+    if (busy) return;
+    if (!cart.length) { showError('There is nothing on this sale to hold.'); return; }
+    showError('');
+    holdLabel.value = '';
+    if (holdDialog && holdDialog.showModal) {
+      holdDialog.showModal();
+      holdLabel.focus();
+    } else {
+      var name = window.prompt("Customer's name (optional):", '');
+      if (name !== null) finishHold(name);
+    }
+  }
+
+  function finishHold(label) {
+    holdCurrent(label).then(function (held) {
+      var box = document.getElementById('last-sale');
+      box.innerHTML = 'Sale held as <strong>' + escapeHtml(held.label) + '</strong>. ' +
+        'Serve the next customer, and bring it back from <strong>On hold</strong>.';
+      box.hidden = false;
+      refreshHeld();
+      scan.focus();
+    }).catch(function (err) {
+      showError(err.message || 'The sale could not be held. Nothing was lost - try again.');
+    });
+  }
+
+  if (holdDialog) {
+    document.getElementById('hold-form').addEventListener('submit', function () {
+      // method="dialog" closes it; this only reads the name.
+      finishHold(holdLabel.value.trim());
+    });
+    document.getElementById('hold-cancel').addEventListener('click', function () {
+      holdDialog.close();
+      scan.focus();
+    });
+  }
+  document.getElementById('hold').addEventListener('click', askToHold);
+
+  // Bringing a basket back never mixes two customers' shopping. If there is
+  // a sale on screen it is held first, under its own name, and then the
+  // chosen one comes back - nothing is merged and nothing is lost.
+  function bringBack(h) {
+    if (busy) return;
+    var first = Promise.resolve(null);
+    if (cart.length) {
+      if (!confirm('There is a sale on screen. It will be put on hold first, so nothing ' +
+                   'is lost, and then ' + h.label + ' comes back.\n\nContinue?')) return;
+      first = holdCurrent('');
+    }
+    busy = true;
+    first.then(function (parked) {
+      return postJson(HELD + h.id + '/recall/').then(function (res) {
+        busy = false;
+        if (!res.ok) {
+          showError(res.d.error || 'That basket could not be brought back.');
+          refreshHeld();
+          return;
+        }
+        cart = res.d.lines;
+        document.getElementById('customer').value = res.d.customer_id || '';
+        render();
+        var box = document.getElementById('last-sale');
+        box.innerHTML = '<strong>' + escapeHtml(res.d.label) + '</strong> is back on the till.' +
+          (parked ? ' The previous sale is on hold as <strong>' +
+                    escapeHtml(parked.label) + '</strong>.' : '');
+        box.hidden = false;
+        showError((res.d.notes || []).join(' '));
+        refreshHeld();
+        scan.focus();
+      });
+    }).catch(function (err) {
+      busy = false;
+      showError((err && err.message) || 'That basket could not be brought back. Try again.');
+    });
+  }
+
+  function discard(h) {
+    if (!confirm('Throw away ' + h.label + ' (' + h.items + ' items)? ' +
+                 'Only do this if the customer is not coming back.')) return;
+    postJson(HELD + h.id + '/discard/').then(function (res) {
+      if (!res.ok) showError(res.d.error || 'It could not be discarded.');
+      refreshHeld();
+    });
+  }
+
+  refreshHeld();
+  // Another till may hold or bring back a basket at any moment.
+  setInterval(function () { if (!document.hidden) refreshHeld(); }, 30000);
+
   // Till shortcuts - a busy cashier should not need the mouse.
   document.addEventListener('keydown', function (e) {
     if (e.key === 'F2') { e.preventDefault(); scan.focus(); scan.select(); }
     if (e.key === 'F9') { e.preventDefault(); checkout(); }
+    if (e.key === 'F8') { e.preventDefault(); askToHold(); }
   });
 
   render();
