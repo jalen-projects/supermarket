@@ -27,7 +27,14 @@
             <td>{{ b.expiry_date|date:"d M Y" }} <span class="faint">({{ b.expiry_date|timesince }} ago)</span></td>
             <td class="num">{{ currency }} {{ b.value|floatformat:0|intcomma }}</td>
             <td class="num">
-              <form method="post" action="{% url 'batch_write_off' b.pk %}"
+              <form method="post" action="{% url 'batch_fix_expiry' b.pk %}"
+                    style="display:inline-flex;gap:.3rem;margin-right:.4rem"
+                    title="Entered with the wrong date? Correct it and the stock goes back on sale.">
+                {% csrf_token %}
+                <input type="date" name="expiry_date" aria-label="Correct expiry date for {{ b.product.name }}" style="max-width:9.5rem">
+                <button type="submit" class="btn btn-sm">Correct date</button>
+              </form>
+              <form method="post" action="{% url 'batch_write_off' b.pk %}" style="display:inline"
                     onsubmit="return confirm('Write this batch off the books?')">
                 {% csrf_token %}
                 <input type="hidden" name="reason" value="Expired">

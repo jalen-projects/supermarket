@@ -177,27 +177,39 @@ class SignInCodeTests(ShopTestCase):
         self.assertTrue(self.signed_in())
 
     @override_settings(**LIVE)
-    def test_cashier_gets_an_sms_and_the_code_lets_them_in(self):
+    def test_a_cashier_signs_in_with_the_password_alone_and_lands_on_the_till(self):
+        # The manager's request, 6 Oct 2026: no code for the tills.
         give_credit(5)
         gw = Gateway()
         with mock.patch("sms.services.ego_send", gw):
             response = self.sign_in()
+        self.assertRedirects(response, reverse("pos"), fetch_redirect_response=False)
+        self.assertTrue(self.signed_in())
+        self.assertEqual(gw.sent, [])
+        self.assertFalse(SignInCode.objects.exists())
+
+    @override_settings(**LIVE)
+    def test_the_owner_gets_an_sms_and_the_code_lets_them_in(self):
+        give_credit(5)
+        gw = Gateway()
+        with mock.patch("sms.services.ego_send", gw):
+            response = self.sign_in("owner")
         self.assertRedirects(response, reverse("sms_code"), fetch_redirect_response=False)
         self.assertFalse(self.signed_in())
-        self.assertEqual(gw.sent[0][0], "256772123456")
+        self.assertEqual(gw.sent[0][0], "256701999888")
         # The log keeps the message, never the code.
-        self.assertNotIn(gw.last_code(), Message.objects.get().body)
+        self.assertNotIn(gw.last_code(), Message.objects.first().body)
         self.assertTrue(AuditEvent.objects.filter(action=Action.OTP_SENT).exists())
 
         self.client.post(reverse("sms_code"), {"code": "000000" if gw.last_code() != "000000" else "111111"})
         self.assertFalse(self.signed_in())
         self.assertTrue(AuditEvent.objects.filter(action=Action.OTP_FAILED,
-                                                  reference="cashier").exists())
+                                                  reference="owner").exists())
 
         response = self.client.post(reverse("sms_code"), {"code": gw.last_code()})
         self.assertTrue(self.signed_in())
         self.assertTrue(AuditEvent.objects.filter(action=Action.OTP_PASSED).exists())
-        self.assertTrue(AuditEvent.objects.filter(action=Action.SIGN_IN, user=self.cashier).exists())
+        self.assertTrue(AuditEvent.objects.filter(action=Action.SIGN_IN, user=self.owner).exists())
 
     @override_settings(**LIVE)
     def test_owner_gets_it_by_sms_and_email(self):
@@ -219,62 +231,10 @@ class SignInCodeTests(ShopTestCase):
         self.assertTrue(self.signed_in())
 
     @override_settings(**LIVE)
-    def test_a_cashier_without_a_phone_is_told_to_ask_the_owner(self):
-        self.cashier.phone = ""
-        self.cashier.save()
-        response = self.sign_in()
-        self.assertContains(response, "no mobile number")
-        self.assertFalse(self.signed_in())
-
-    @override_settings(**LIVE)
-    def test_no_credit_sends_the_cashiers_code_to_the_owner(self):
-        with mock.patch("sms.services.ego_send", Gateway()):
-            self.sign_in()
-        row = SignInCode.objects.get()
-        self.assertTrue(row.via_owner)
-        self.assertEqual(mail.outbox[0].to, ["owner@example.com"])
-        self.assertIn("Moses", mail.outbox[0].subject)
-        code = re.search(r"\b(\d{6})\b", mail.outbox[0].body).group(1)
-        page = self.client.get(reverse("sms_code"))
-        self.assertContains(page, "Ask the owner for it")
-        self.client.post(reverse("sms_code"), {"code": code})
-        self.assertTrue(self.signed_in())
-
-    @override_settings(**LIVE)
-    def test_no_credit_sends_the_code_to_the_cashiers_own_email_first(self):
-        # The owner's choice: a cashier with an email of their own does not
-        # disturb him.
-        self.cashier.email = "moses@example.com"
-        self.cashier.save()
-        with mock.patch("sms.services.ego_send", Gateway()):
-            self.sign_in()
-        row = SignInCode.objects.get()
-        self.assertFalse(row.via_owner)
-        self.assertEqual([m.to for m in mail.outbox], [["moses@example.com"]])
-        code = re.search(r"(\d{6})", mail.outbox[0].body).group(1)
-        self.client.post(reverse("sms_code"), {"code": code})
-        self.assertTrue(self.signed_in())
-
-    @override_settings(**LIVE)
-    def test_a_cashier_with_only_an_email_still_gets_a_code(self):
-        self.cashier.phone = ""
-        self.cashier.email = "moses@example.com"
-        self.cashier.save()
-        self.sign_in()
-        self.assertEqual(mail.outbox[0].to, ["moses@example.com"])
-        self.assertFalse(self.signed_in())
-
-    @override_settings(**{**LIVE, "OWNER_ALERT_EMAILS": []})
-    def test_no_credit_and_no_owner_email_refuses_with_the_reason(self):
-        response = self.sign_in()
-        self.assertContains(response, "top up the SMS credit")
-        self.assertFalse(self.signed_in())
-
-    @override_settings(**LIVE)
     def test_five_wrong_codes_end_the_attempt(self):
         give_credit(5)
         with mock.patch("sms.services.ego_send", Gateway()):
-            self.sign_in()
+            self.sign_in("owner")
         for _ in range(5):
             response = self.client.post(reverse("sms_code"), {"code": "abcdef"})
         self.assertRedirects(response, reverse("login"), fetch_redirect_response=False)
@@ -285,7 +245,7 @@ class SignInCodeTests(ShopTestCase):
         give_credit(5)
         gw = Gateway()
         with mock.patch("sms.services.ego_send", gw):
-            self.sign_in()
+            self.sign_in("owner")
         SignInCode.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
         self.client.post(reverse("sms_code"), {"code": gw.last_code()})
         self.assertFalse(self.signed_in())
@@ -295,7 +255,7 @@ class SignInCodeTests(ShopTestCase):
         give_credit(5)
         gw = Gateway()
         with mock.patch("sms.services.ego_send", gw):
-            self.sign_in()
+            self.sign_in("owner")
             response = self.client.post(reverse("sms_code"), {"resend": "1"})
             self.assertContains(response, "wait a minute")
             SignInCode.objects.update(created_at=timezone.now() - timedelta(minutes=2))

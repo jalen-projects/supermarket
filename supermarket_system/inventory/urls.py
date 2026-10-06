@@ -42,6 +42,7 @@ urlpatterns = [
     path("stock/counts/", views.stock_count_list, name="stock_count_list"),
     path("stock/counts/<int:pk>/", views.stock_count_detail, name="stock_count_detail"),
     path("expiry/", views.expiry_list, name="expiry_list"),
+    path("batches/<int:pk>/expiry/", views.batch_fix_expiry, name="batch_fix_expiry"),
     path("batches/<int:pk>/write-off/", views.batch_write_off, name="batch_write_off"),
     path("movements/", views.movement_list, name="movement_list"),
 ]

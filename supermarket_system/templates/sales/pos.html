@@ -108,9 +108,9 @@
         </div>
 
         <div class="field" style="margin-top:1rem" data-tour="paid">
-          <label for="paid">Cash received from the customer ({{ currency }})</label>
+          <label for="paid">Cash received from the customer ({{ currency }}) <span class="faint">- optional</span></label>
           <input type="number" id="paid" class="input" min="0" step="any"
-                 style="font-size:1.15rem;padding:.7rem" placeholder="0">
+                 style="font-size:1.15rem;padding:.7rem" placeholder="Leave empty if paid exactly">
         </div>
         <!-- Tender buttons. The cashier is holding notes, not a keyboard: one
              tap for "he gave me exactly the total", one per common note. -->
@@ -149,7 +149,7 @@
   </div>
 </div>
 
-<div hidden id="cfg"
+<div hidden id="cfg" data-user="{{ user.pk }}"
      data-currency="{{ currency }}"
      data-vat="{{ vat_percent|default:0 }}"
      data-lookup="{% url 'product_lookup' %}"

@@ -14,7 +14,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Sum
 from django.http import FileResponse, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import resolve_url, get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -37,6 +37,19 @@ class LoginView(auth_views.LoginView):
     template_name = "shop/login.html"
     redirect_authenticated_user = True
     authentication_form = GuardedAuthenticationForm
+
+    def get_success_url(self):
+        # A cashier signs in to sell: straight to the till, not the dashboard.
+        user = getattr(self.request, "user", None)
+        form_user = getattr(self, "_signed_in", None) or user
+        if (form_user is not None and not getattr(form_user, "is_admin", True)
+                and not self.get_redirect_url()):
+            return resolve_url("pos")
+        return super().get_success_url()
+
+    def form_valid(self, form):
+        self._signed_in = form.get_user()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

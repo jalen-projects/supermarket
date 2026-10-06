@@ -22,6 +22,22 @@
   var CHECKOUT_LABEL = document.getElementById('checkout').innerHTML;
 
   var cart = [];        // {id, name, price, qty, unit, dec}
+
+  // THE BASKET SURVIVES A RELOAD. It used to live only in this page, so a
+  // refresh, a mis-click on the menu or a dropped connection emptied it and
+  // it looked as if the system deleted items on its own. Now it is kept in
+  // this browser, per cashier, until the sale is completed or cleared.
+  var CART_KEY = 'maqam.cart.' + (cfg.dataset.user || 'till');
+  function saveCart() {
+    try {
+      if (cart.length) localStorage.setItem(CART_KEY, JSON.stringify(cart));
+      else localStorage.removeItem(CART_KEY);
+    } catch (e) { /* storage blocked - the basket simply is not kept */ }
+  }
+  try {
+    var kept = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+    if (Array.isArray(kept)) cart = kept;
+  } catch (e) { cart = []; }
   var matches = [];
   var selected = -1;
   var searchTimer = null;
@@ -60,6 +76,7 @@
   }
 
   function render() {
+    saveCart();
     emptyRow.hidden = cart.length > 0;
     // Remove previously drawn rows, keep the empty-state row.
     Array.prototype.slice.call(cartBody.querySelectorAll('tr.line')).forEach(function (tr) {
@@ -237,7 +254,9 @@
       var out = parseFloat(p.stock) <= 0;
       div.innerHTML =
         '<div class="r-name">' + escapeHtml(p.name) +
-        (out ? ' <span class="badge badge-danger">out of stock</span>' : '') +
+        (out ? (parseFloat(p.expired || '0') > 0
+                 ? ' <span class="badge badge-danger">expired date - ask the manager</span>'
+                 : ' <span class="badge badge-danger">out of stock</span>') : '') +
         '<div class="r-meta">' + escapeHtml(p.barcode || 'no barcode') +
         ' &middot; ' + p.stock + ' ' + escapeHtml(p.unit) + ' left' +
         (p.expiry ? ' &middot; expires ' + p.expiry : '') + '</div></div>' +
@@ -342,7 +361,12 @@
     }
 
     var total = window._posTotal || 0;
-    var paid = parseFloat(document.getElementById('paid').value) || 0;
+    // CASH OUT WITHOUT TYPING THE MONEY (the manager's request, 6 Oct 2026):
+    // an empty "amount paid" means the customer paid exactly. Typing an
+    // amount still works, for working out change; a typed amount that is too
+    // little is still questioned below.
+    var paidRaw = document.getElementById('paid').value.trim();
+    var paid = paidRaw === '' ? total : (parseFloat(paidRaw) || 0);
     var method = document.getElementById('method').value;
     if (method !== 'CREDIT' && paid < total) {
       if (!confirm('The customer has given ' + money(paid) + ' but the total is ' +

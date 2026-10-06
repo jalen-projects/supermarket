@@ -207,9 +207,13 @@ class InsufficientStock(Exception):
         self.product = product
         self.requested = requested
         self.available = available
-        super().__init__(
-            f"Only {available} {product.unit} of {product.name} available "
-            f"(you asked for {requested}).")
+        msg = (f"Only {available} {product.unit} of {product.name} available "
+               f"(you asked for {requested}).")
+        expired = getattr(product, "expired_quantity", 0)
+        if expired:
+            msg += (f" Another {expired:g} is in stock but past its expiry date - if that date "
+                    "was entered wrongly, the manager can correct it on the Expiry page.")
+        super().__init__(msg)
 
 
 class Shift(models.Model):

@@ -1,9 +1,23 @@
 from django import forms
+from django.utils import timezone
 from django.forms import inlineformset_factory
 
 from shop.forms import BootstrapMixin
 
 from .models import Category, Product, Purchase, PurchaseItem, StockMovement, Supplier, Unit
+
+
+def not_past(value):
+    """An expiry date that has already passed makes stock UNSELLABLE: the till
+    will not sell expired goods, so it shows the item as out of stock while
+    the shelf is full. Nearly always it is a slip - the wrong year, or the
+    manufacture date - so it is refused here with that said plainly."""
+    if value and value < timezone.localdate():
+        raise forms.ValidationError(
+            f"{value:%d %b %Y} has already passed. Goods entered with a past expiry date "
+            "cannot be sold at the till. Check the year, and use the EXPIRY date, not the "
+            "manufacture date.")
+    return value
 
 
 class ProductForm(BootstrapMixin, forms.ModelForm):
@@ -40,6 +54,9 @@ class ProductForm(BootstrapMixin, forms.ModelForm):
         if self.instance.pk:
             self.fields.pop("opening_quantity")
             self.fields.pop("opening_expiry")
+
+    def clean_opening_expiry(self):
+        return not_past(self.cleaned_data.get("opening_expiry"))
 
     def clean_barcode(self):
         # An empty barcode must be NULL, not "", or the second blank one
@@ -106,6 +123,9 @@ class PurchaseItemForm(BootstrapMixin, forms.ModelForm):
         model = PurchaseItem
         fields = ["product", "quantity", "buying_price", "selling_price", "expiry_date"]
         widgets = {"expiry_date": forms.DateInput(attrs={"type": "date"})}
+
+    def clean_expiry_date(self):
+        return not_past(self.cleaned_data.get("expiry_date"))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

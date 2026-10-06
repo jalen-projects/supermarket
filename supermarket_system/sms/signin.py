@@ -39,7 +39,13 @@ class Refused(Exception):
 
 
 def required(user):
-    return bool(getattr(settings, "ONLINE", False)) and services.is_configured()
+    """Only the owner and managers get a code. Cashiers sign in with their
+    username and password alone and go straight to the till (the manager's
+    request, 6 Oct 2026: the codes kept the tills shut whenever the SMS
+    credit ran out). A cashier cannot change prices, stock or users, so the
+    second lock stays where the money decisions are made."""
+    return (bool(getattr(settings, "ONLINE", False)) and services.is_configured()
+            and bool(getattr(user, "is_admin", False)))
 
 
 def _owner_emails():

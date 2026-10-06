@@ -459,7 +459,8 @@ def plan(records, *, add_stock_to_existing=False, default_unit="Piece",
 
         expiry = row.data.get("expiry")
         if expiry and expiry < today:
-            row.warnings.append(f"expiry {expiry} has already passed")
+            row.warnings.append(f"expiry {expiry} has already passed - this stock will NOT "
+                                "sell at the till until the date is corrected (Expiry page)")
 
         plans.append(row)
 

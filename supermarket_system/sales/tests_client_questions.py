@@ -264,6 +264,25 @@ class DeleteProductTests(ShopTestCase):
         response = self.client.get(reverse("product_lookup"), {"q": "Discontinued"})
         self.assertEqual(response.json()["results"], [])
 
+    def test_a_wrong_expiry_date_can_be_corrected_and_the_stock_sells_again(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        product = self.make_product()
+        self.deliver(product, 5, expiry=timezone.localdate() - timedelta(days=400))
+        self.assertEqual(product.sellable_quantity, 0)
+        batch = product.batches.get()
+        self.client.login(username="owner", password="pw12345")
+        good = timezone.localdate() + timedelta(days=300)
+        self.client.post(reverse("batch_fix_expiry", args=[batch.pk]), {"expiry_date": good.isoformat()})
+        self.assertEqual(product.sellable_quantity, 5)
+
+    def test_a_past_expiry_date_is_refused_when_stock_is_entered(self):
+        from inventory.forms import not_past
+        from django import forms
+        from datetime import date
+        with self.assertRaises(forms.ValidationError):
+            not_past(date(2020, 1, 1))
+
     def test_many_retired_products_go_back_on_sale_at_once(self):
         a, b = self.make_product(), self.make_product()
         for p in (a, b):

@@ -8,6 +8,7 @@ from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from sales.models import InsufficientStock
@@ -351,6 +352,7 @@ def product_lookup(request):
         "unit": str(p.unit),
         "allow_decimals": p.unit.allow_decimals,
         "stock": str(p.sellable_quantity),
+        "expired": str(p.expired_quantity),
         "expiry": p.nearest_expiry.isoformat() if p.nearest_expiry else "",
     } for p in qs]
     return JsonResponse({"results": results, "exact": bool(exact)})
@@ -549,6 +551,34 @@ def expiry_list(request):
 
 
 @admin_required
+def batch_fix_expiry(request, pk):
+    """Correct a wrong expiry date. Stock entered with a past date (the wrong
+    year, or the manufacture date) is refused by the till as expired and looks
+    'out of stock' with a full shelf; this puts it back on sale."""
+    batch = get_object_or_404(StockBatch, pk=pk)
+    if request.method == "POST":
+        raw = (request.POST.get("expiry_date") or "").strip()
+        new = parse_date(raw) if raw else None
+        if raw and new is None:
+            messages.error(request, "That date could not be read.")
+        elif new and new < timezone.localdate():
+            messages.error(request, f"{new:%d %b %Y} has also passed. Enter the real expiry "
+                                    "date, or leave it empty if the goods do not expire.")
+        else:
+            old = batch.expiry_date
+            batch.expiry_date = new
+            batch.save(update_fields=["expiry_date"])
+            audit.record(
+                AuditEvent.Action.STOCK_ADJUSTED,
+                f"Expiry date corrected: {batch.product.name}",
+                request=request, reference=f"batch-{batch.pk}",
+                changes=f"Expiry: {old or 'none'} -> {new or 'none'}")
+            messages.success(request, f"{batch.product.name}: expiry date corrected. "
+                                      f"{batch.quantity_remaining:g} back on sale.")
+    return redirect(request.POST.get("next") or "expiry_list")
+
+
+@admin_required
 def batch_write_off(request, pk):
     batch = get_object_or_404(StockBatch, pk=pk)
     if request.method == "POST":
@@ -607,6 +637,10 @@ def stock_take(request):
                     "buying_price": _decimal_or_none(request.POST.get(f"cost_{pid}", "")),
                     "expiry_date": parse_date(expiry_raw) if expiry_raw else None,
                 })
+                if rows[-1]["expiry_date"] and rows[-1]["expiry_date"] < timezone.localdate():
+                    rows.pop()
+                    raise ValueError(f"expiry {expiry_raw} has already passed - goods with a "
+                                     "past expiry date cannot be sold. Check the year.")
             except ValueError as exc:
                 errors.append(f"{product.name}: {exc}")
 
