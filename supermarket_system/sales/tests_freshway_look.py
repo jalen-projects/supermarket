@@ -146,3 +146,110 @@ class FreshWayFrontDoorTests(FrontDoorTestCase):
         for part in ("fwd-band", "css/freshway-dash.css", "css/freshway-app.css", "Tomatoes"):
             self.assertIn(part, page)
         self.assertNotIn("till-rolls", page)
+
+
+# ---------------------------------------------------------------------------
+# Moving pictures (7 Oct 2026): the market behind the stall and the three
+# loops recorded from the demo shop. FreshWay only; never in MAQAM's way.
+# ---------------------------------------------------------------------------
+import re  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from django.conf import settings  # noqa: E402
+from django.template.loader import get_template  # noqa: E402
+
+FOOTAGE = Path(settings.BASE_DIR) / "static" / "brand" / "freshway" / "footage"
+# file: the most it may weigh, for a shop on Ugandan mobile data
+FOOTAGE_BUDGET = {
+    "market.mp4": 2_500_000, "market-poster.webp": 200_000, "market-phone.webp": 200_000,
+    "clip-till.mp4": 1_000_000, "clip-till.webp": 200_000,
+    "clip-owner.mp4": 1_000_000, "clip-owner.webp": 200_000,
+    "clip-stock.mp4": 1_000_000, "clip-stock.webp": 200_000,
+}
+MEDIA_MARKS = ("<video", "brand/freshway/footage", "fw-scene", "fw-reel", "IntersectionObserver")
+
+
+class MaqamHasNoMovingPicturesTests(FrontDoorTestCase):
+    """MAQAM's pages are what they were: not a video, not a still, not a
+    script of FreshWay's. Nothing set means none of this."""
+
+    def test_his_pages_carry_none_of_it(self):
+        response, page = self.page("login")
+        for part in MEDIA_MARKS:
+            self.assertNotIn(part, page)
+        self.client.force_login(self.owner)
+        for name in ("owner", "dashboard"):
+            response, page = self.page(name)
+            for part in MEDIA_MARKS:
+                self.assertNotIn(part, page)
+
+    def test_no_template_of_his_names_the_footage(self):
+        # Only FreshWay's own sign-in page may point at the footage.
+        root = Path(settings.BASE_DIR) / "templates"
+        for path in root.rglob("*.html"):
+            if path.as_posix().endswith("shop/freshway/login.html"):
+                continue
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("footage", text, path)
+            self.assertNotIn("<video", text, path)
+
+    def test_his_sign_in_template_is_the_one_he_had(self):
+        self.assertEqual(get_template(brand.template("shop/login.html")).origin.template_name,
+                         "shop/login.html")
+
+
+@override_settings(SHOP_BRAND="freshway", DEMO=True)
+class FreshWayMovingPicturesTests(FrontDoorTestCase):
+    def test_the_market_is_a_still_first_and_a_video_only_later(self):
+        response, page = self.page("login")
+        scene = page[page.index('class="fw-scene"'):page.index('class="fw-awning"')]
+        self.assertIn("market-poster.webp", scene)
+        self.assertIn("market-phone.webp", scene)
+        video = re.search(r"<video[^>]*>", scene).group(0)
+        # the parser never fetches it: no src, no autoplay, nothing preloaded
+        self.assertIn('preload="none"', video)
+        self.assertIn("data-src=", video)
+        self.assertNotRegex(video, r"\ssrc=")
+        self.assertNotIn("autoplay", video)
+        for attr in ("muted", "loop", "playsinline"):
+            self.assertIn(attr, video)
+
+    def test_video_waits_for_the_page_and_respects_the_connection(self):
+        response, page = self.page("login")
+        script = page[page.index("Moving pictures"):]
+        for part in ("addEventListener('load'", "prefers-reduced-motion: reduce", "saveData",
+                     "2g", "IntersectionObserver", ".pause()", "min-width: 861px"):
+            self.assertIn(part, script)
+        # the form comes before every picture in the page
+        self.assertLess(page.index('id="signin-form"'), page.index('class="fw-scene"'))
+
+    def test_the_loops_are_below_the_form_lazy_and_sized(self):
+        response, page = self.page("login")
+        reel = page[page.index('class="fw-reel"'):]
+        self.assertGreater(page.index('class="fw-reel"'), page.index("</main>"))
+        for clip in ("clip-till", "clip-owner", "clip-stock"):
+            img = re.search(r'<img src="[^"]*%s\.webp"[^>]*>' % clip, reel).group(0)
+            for attr in ('loading="lazy"', "width=", "height=", "alt="):
+                self.assertIn(attr, img)
+            self.assertIn('data-src="/static/brand/freshway/footage/%s.mp4"' % clip, reel)
+        self.assertEqual(reel.count("<video"), 3)
+        self.assertNotIn("autoplay", reel)
+
+    @override_settings(DEMO=False)
+    def test_a_real_freshway_has_no_demo_reel(self):
+        response, page = self.page("login")
+        self.assertNotIn("fw-reel", page)
+        self.assertIn("fw-scene", page)
+
+    def test_every_picture_is_ours_light_and_credited(self):
+        response, page = self.page("login")
+        named = set(re.findall(r"brand/freshway/footage/([\w.-]+)", page))
+        self.assertEqual(named, set(FOOTAGE_BUDGET))
+        credits = (FOOTAGE / "CREDITS.md").read_text(encoding="utf-8")
+        for name, most in FOOTAGE_BUDGET.items():
+            size = (FOOTAGE / name).stat().st_size
+            self.assertLessEqual(size, most, name)
+            self.assertIn(name, credits)
+        # served from the shop itself, never from someone else's server
+        for src in re.findall(r'(?:src|srcset|data-src)="([^"]+)"', page):
+            self.assertFalse(src.startswith(("http:", "https:", "//")), src)

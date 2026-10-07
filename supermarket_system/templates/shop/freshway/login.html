@@ -92,6 +92,22 @@
   </section>
 
   <section class="fw-stall" aria-label="{% if price_board %}Shelf prices today{% else %}{{ shop.company_name }}{% endif %}">
+    {% comment %}
+      Behind the stall, a real market: a still photograph first (the phone
+      gets a smaller one), and on a computer with a decent connection a
+      ten-second loop of the same stall, fetched only after the page - the
+      sign-in form - has finished loading. Never with motion reduced, data
+      saver on or a 2G connection: then the still is all that comes.
+      Footage: Pexels (see static/brand/freshway/footage/CREDITS.md).
+    {% endcomment %}
+    <div class="fw-scene" aria-hidden="true">
+      <picture>
+        <source media="(max-width: 860px)" srcset="{% static 'brand/freshway/footage/market-phone.webp' %}" width="640" height="480">
+        <img class="fw-scene-still" src="{% static 'brand/freshway/footage/market-poster.webp' %}" width="720" height="800" alt="" decoding="async" fetchpriority="low">
+      </picture>
+      <video class="fw-scene-video" muted loop playsinline preload="none" disablepictureinpicture tabindex="-1"
+             data-src="{% static 'brand/freshway/footage/market.mp4' %}"></video>
+    </div>
     <div class="fw-awning" aria-hidden="true"></div>
     <div class="fw-stall-body">
       <p class="fw-slogan">{% if shop.tagline %}{{ shop.tagline }}{% else %}{{ shop.company_name }}{% endif %}</p>
@@ -140,6 +156,59 @@
   </section>
 </main>
 
+{% if demo %}
+{% comment %}
+  Below the fold, out of a cashier's way: three short loops recorded from
+  this demonstration shop itself. Each is a still picture (loaded lazily)
+  until it scrolls into view; the video is fetched then, plays while it is
+  on screen and stops when it leaves. Stills only when motion is reduced,
+  data saver is on or the connection is 2G.
+{% endcomment %}
+<section class="fw-reel" aria-labelledby="fw-reel-title">
+  <div class="fw-reel-head">
+    <p class="fw-reel-kicker">Recorded from this demo shop</p>
+    <h2 class="fw-reel-title" id="fw-reel-title">See it working</h2>
+  </div>
+  <div class="fw-reel-grid">
+    <figure class="fw-clip">
+      <div class="fw-frame">
+        <div class="fw-frame-bar" aria-hidden="true"><span>The till</span><em>Grace, on the shop computer</em></div>
+        <div class="fw-frame-screen" style="aspect-ratio: 720 / 450">
+          <img src="{% static 'brand/freshway/footage/clip-till.webp' %}" width="720" height="450" loading="lazy" decoding="async"
+               alt="The till: a cashier rings up tomato sauce, bread and tomatoes, takes a 50,000 note, sees the change of 36,500, and the receipt prints with its QR code.">
+          <video muted loop playsinline preload="none" disablepictureinpicture tabindex="-1" aria-hidden="true"
+                 data-src="{% static 'brand/freshway/footage/clip-till.mp4' %}"></video>
+        </div>
+      </div>
+      <figcaption><b>At the till.</b> A basket rung up, the change worked out, and the receipt out of the printer with a QR code anyone can scan to check it.</figcaption>
+    </figure>
+    <figure class="fw-clip fw-clip-phone">
+      <div class="fw-phone">
+        <div class="fw-frame-screen" style="aspect-ratio: 360 / 646">
+          <img src="{% static 'brand/freshway/footage/clip-owner.webp' %}" width="360" height="646" loading="lazy" decoding="async"
+               alt="The owner's phone page: today's takings go from 13,500 to 80,100 after two more sales.">
+          <video muted loop playsinline preload="none" disablepictureinpicture tabindex="-1" aria-hidden="true"
+                 data-src="{% static 'brand/freshway/footage/clip-owner.mp4' %}"></video>
+        </div>
+      </div>
+      <figcaption><b>On the owner's phone.</b> Today's takings, by till, catching up with every sale.</figcaption>
+    </figure>
+    <figure class="fw-clip">
+      <div class="fw-frame">
+        <div class="fw-frame-bar" aria-hidden="true"><span>Deliveries</span><em>Ronald, the manager</em></div>
+        <div class="fw-frame-screen" style="aspect-ratio: 720 / 450">
+          <img src="{% static 'brand/freshway/footage/clip-stock.webp' %}" width="720" height="450" loading="lazy" decoding="async"
+               alt="A drinks delivery from the supplier, still a draft, is received into stock with one click.">
+          <video muted loop playsinline preload="none" disablepictureinpicture tabindex="-1" aria-hidden="true"
+                 data-src="{% static 'brand/freshway/footage/clip-stock.mp4' %}"></video>
+        </div>
+      </div>
+      <figcaption><b>At the back door.</b> A delivery checked against the invoice and received: the crates are on the shelf count at once.</figcaption>
+    </figure>
+  </div>
+</section>
+{% endif %}
+
 <script>
   (function () {
     var form = document.getElementById('signin-form');
@@ -169,6 +238,43 @@
       setTimeout(function () { submit.disabled = true; }, 0);
       submit.classList.add('is-busy');
       submit.querySelector('.fw-submit-label').textContent = 'Opening the till';
+    });
+  })();
+
+  // Moving pictures, last of all and only when they cost nobody anything:
+  // not before the page has loaded, not with motion reduced, data saver on
+  // or a 2G connection. Otherwise the stills stay, and the page is the same.
+  (function () {
+    var net = navigator.connection || {};
+    var still = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ||
+                net.saveData || /(^|-)2g$/.test(net.effectiveType || '');
+    if (still) return;
+
+    function start(v) {
+      if (!v.getAttribute('src')) {
+        v.addEventListener('playing', function () { v.classList.add('is-on'); });
+        v.src = v.dataset.src;
+      }
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+    }
+
+    window.addEventListener('load', function () {
+      // The market behind the stall: on a computer only; a phone keeps the still.
+      var scene = document.querySelector('.fw-scene-video');
+      if (scene && matchMedia('(min-width: 861px)').matches) start(scene);
+
+      // The three loops below the fold: fetched when they come into view,
+      // stopped when they leave it.
+      var clips = document.querySelectorAll('.fw-clip video');
+      if (!clips.length || !('IntersectionObserver' in window)) return;
+      var seen = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) start(e.target);
+          else if (e.target.getAttribute('src')) e.target.pause();
+        });
+      }, { threshold: 0.35 });
+      clips.forEach(function (v) { seen.observe(v); });
     });
   })();
 </script>
