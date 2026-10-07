@@ -39,6 +39,10 @@ class LoginView(auth_views.LoginView):
     redirect_authenticated_user = True
     authentication_form = GuardedAuthenticationForm
 
+    def get_template_names(self):
+        # A shop with its own front door (shop/brand.py); MAQAM has none.
+        return [brand.template(self.template_name)]
+
     def get_success_url(self):
         # A cashier signs in to sell: straight to the till, not the dashboard.
         user = getattr(self.request, "user", None)
@@ -60,6 +64,8 @@ class LoginView(auth_views.LoginView):
         ctx["greeting"] = ("Good morning" if hour < 12 else
                            "Good afternoon" if hour < 17 else "Good evening")
         ctx["trading_day"] = timezone.localdate()
+        if brand.current().get("price_board"):
+            ctx["price_board"] = price_board()
         return ctx
 
 
@@ -117,7 +123,26 @@ def dashboard(request):
                             .annotate(total=Sum("total"), n=Count("id")).order_by("-total")[:5]),
         })
     ctx["till_rolls"] = till_rolls()
+    # The band above the numbers is the shop's own (shop/brand.py).
+    ctx["dash_band"] = brand.template("partials/dash_band.html")
+    if brand.current().get("price_board"):
+        ctx["price_board"] = price_board()
     return render(request, "shop/dashboard.html", ctx)
+
+
+def price_board(size=6):
+    """The produce board on a shop's own front door (shop/brand.py).
+
+    Shelf prices as the products have them today - what any shopper walking
+    past the stall can read anyway - never what the shop paid. Empty when the
+    category has nothing on sale, and the board is then simply not drawn.
+    """
+    category = brand.current().get("price_board")
+    if not category:
+        return []
+    return list(Product.objects.active()
+                .filter(category__name=category, selling_price__gt=0)
+                .select_related("unit").order_by("name")[:size])
 
 
 def till_rolls(columns=3, per_column=14):
@@ -411,7 +436,7 @@ def owner_view(request):
                  done.values("payment_method").annotate(t=Sum("total"))}
     tills = list(Till.objects.filter(is_phone=False).select_related("last_user")[:8])
     last_seen = tills[0].last_seen if tills else None
-    return render(request, "shop/owner.html", {
+    return render(request, brand.template("shop/owner.html"), {
         "now": now,
         "total": done.aggregate(t=Sum("total"))["t"] or Decimal("0"),
         "count": done.count(),

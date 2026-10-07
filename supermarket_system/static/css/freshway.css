@@ -1,0 +1,392 @@
+/* FreshWay's front door - templates/shop/freshway/login.html. MAQAM never
+   loads this file (its sign-in is login.css).
+
+   The idea: a neighbourhood market stall in the morning. The shop side is
+   daylight - a pale leaf-white page where the sign-in sits - and beside it
+   the stall: leaf-green, under a white-and-orange awning, its board chalked
+   with this morning's produce prices and a crate of fruit at its foot.
+   Green and orange are the two colours of the mark and nothing else is
+   added; the crate's wood is the orange darkened.
+
+   Offline-safe: the one font is served from /static. Motion only animates
+   elements already in place, and none of it runs when motion is reduced. */
+
+@font-face {
+  font-family: "Outfit";
+  src: url("../fonts/outfit-latin.woff2") format("woff2");
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+:root {
+  --fw-leaf-950: #0d2618;   /* deepest green: ink on the page */
+  --fw-leaf-900: #143a24;   /* the stall */
+  --fw-leaf-800: #1b4d30;
+  --fw-leaf-700: #256b40;   /* THE green of the mark */
+  --fw-leaf-500: #3c8f57;
+  --fw-leaf-200: #c9dfc8;
+  --fw-leaf-100: #e6f0e3;
+  --fw-orange: #df6a22;     /* THE orange of the mark */
+  --fw-orange-ink: #a9480f; /* orange text on the light page (AA) */
+  --fw-day: #f2f5ec;        /* the daylight page, a breath of green */
+  --fw-white: #fdfdfa;
+  --fw-ink: #13281b;
+  --fw-ink-soft: #4a5d4f;
+  --fw-line: #cfdacb;
+  --fw-danger: #a3271c;
+  --fw-danger-wash: #fbeceb;
+  --fw-display: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --fw-ui: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --fw-out: cubic-bezier(.16, 1, .3, 1);
+  --fw-spring: cubic-bezier(.34, 1.45, .64, 1);
+}
+
+* { box-sizing: border-box; }
+html { background: var(--fw-day); }
+
+body.fw {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--fw-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--fw-ink);
+  background: var(--fw-day);
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--fw-leaf-200); color: var(--fw-leaf-950); }
+a { color: var(--fw-leaf-700); text-underline-offset: .2em; text-decoration-thickness: 1px; }
+a:hover { color: var(--fw-leaf-950); }
+
+/* ---------- the two halves: shop side left, stall right ---------- */
+.fw-door {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+}
+
+/* ---------- the sign-in, in daylight ---------- */
+.fw-sign {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 2rem;
+  padding: clamp(1.5rem, 3.2vw, 2.75rem) clamp(1.5rem, 5vw, 5.5rem);
+}
+
+.fw-brand { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.fw-mark { width: 44px; height: 44px; color: var(--fw-leaf-700); flex: none; }
+.fw-mark .fw-fruit { fill: var(--fw-orange); }
+.fw-mark .fw-leaf { fill: var(--fw-leaf-700); }
+.fw-name {
+  margin: 0;
+  font-family: var(--fw-display);
+  font-weight: 640;
+  font-size: 1.3rem;
+  letter-spacing: -.015em;
+  color: var(--fw-leaf-950);
+}
+.fw-demo {
+  margin: 0 0 0 .25rem;
+  padding: .15rem .6rem;
+  border: 1px solid var(--fw-orange);
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--fw-orange-ink);
+}
+
+.fw-form-wrap { align-self: center; width: 100%; max-width: 25rem; }
+
+.fw-hello {
+  margin: 0;
+  font-family: var(--fw-display);
+  font-weight: 620;
+  font-size: clamp(2.4rem, 3.6vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  color: var(--fw-leaf-950);
+}
+.fw-lede { margin: .5rem 0 1.75rem; color: var(--fw-ink-soft); font-size: 1.05rem; }
+
+.fw-error {
+  margin: 0 0 1.25rem;
+  padding: .8rem 1rem;
+  border-radius: 14px;
+  background: var(--fw-danger-wash);
+  color: var(--fw-danger);
+  font-weight: 600;
+  font-size: .95rem;
+  animation: fw-nudge .4s var(--fw-out);
+}
+
+.fw-form { display: grid; gap: 1.1rem; }
+.fw-field label {
+  display: block;
+  margin-bottom: .4rem;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--fw-ink);
+}
+.fw-field input {
+  width: 100%;
+  height: 3.25rem;
+  padding: 0 1rem;
+  font: inherit;
+  font-size: 1.05rem;
+  color: var(--fw-ink);
+  background: var(--fw-white);
+  border: 1.5px solid var(--fw-line);
+  border-radius: 14px;
+  transition: border-color .2s var(--fw-out), box-shadow .2s var(--fw-out);
+}
+.fw-field input:hover { border-color: #aebfaa; }
+.fw-field input:focus {
+  outline: none;
+  border-color: var(--fw-leaf-700);
+  box-shadow: 0 0 0 4px rgba(37, 107, 64, .16);
+}
+.fw-pass { position: relative; }
+.fw-pass input { padding-right: 4.5rem; }
+.fw-peek {
+  position: absolute;
+  right: .4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: .45rem .75rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--fw-leaf-700);
+  cursor: pointer;
+}
+.fw-peek:hover { background: var(--fw-leaf-100); }
+.fw-peek:focus-visible { outline: 2px solid var(--fw-leaf-700); outline-offset: 1px; }
+.fw-caps { margin: .4rem 0 0; font-size: .85rem; font-weight: 600; color: var(--fw-orange-ink); }
+
+/* the one button: a deep-green pill, the orange of the mark at its end */
+.fw-submit {
+  margin-top: .4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  height: 3.6rem;
+  padding: 0 .45rem 0 1.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fw-leaf-800);
+  color: #fff;
+  font-family: var(--fw-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  cursor: pointer;
+  transition: background .25s var(--fw-out), transform .2s var(--fw-out);
+}
+.fw-submit-dot {
+  display: grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 50%;
+  background: var(--fw-orange);
+  transition: transform .35s var(--fw-spring);
+}
+.fw-submit-dot svg { width: 1.3rem; height: 1.3rem; }
+.fw-submit:hover { background: var(--fw-leaf-950); }
+.fw-submit:hover .fw-submit-dot { transform: translateX(3px) rotate(-8deg) scale(1.05); }
+.fw-submit:active { transform: scale(.985); }
+.fw-submit:focus-visible { outline: 3px solid var(--fw-orange); outline-offset: 3px; }
+.fw-submit.is-busy { cursor: progress; background: var(--fw-leaf-700); }
+.fw-submit.is-busy .fw-submit-dot { animation: fw-roll 1s linear infinite; }
+
+.fw-facts {
+  margin: 2rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--fw-line);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .35rem 1.25rem;
+  font-size: .92rem;
+}
+.fw-facts div { display: contents; }
+.fw-facts dt { color: var(--fw-ink-soft); }
+.fw-facts dd { margin: 0; font-weight: 550; color: var(--fw-ink); }
+.fw-demo-note { margin: .9rem 0 0; font-size: .88rem; color: var(--fw-orange-ink); font-weight: 550; }
+
+.fw-foot { font-size: .82rem; color: var(--fw-ink-soft); max-width: 30rem; }
+.fw-foot p { margin: 0; }
+.fw-foot .fw-credit { margin-top: .5rem; }
+
+/* ---------- the stall ---------- */
+.fw-stall {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  background: var(--fw-leaf-900);
+  color: #fff;
+}
+
+/* Orange and white stripes, one scallop hanging from each, painted over
+   the stall's green (so the awning needs no mask and works anywhere). */
+.fw-awning {
+  --s: 64px;
+  flex: none;
+  height: 108px;
+  background-color: var(--fw-leaf-900);
+  background-image:
+    repeating-linear-gradient(90deg, var(--fw-orange) 0 var(--s), var(--fw-white) var(--s) calc(2 * var(--s))),
+    radial-gradient(circle calc(var(--s) / 2) at 25% 0, var(--fw-orange) 97%, transparent 100%),
+    radial-gradient(circle calc(var(--s) / 2) at 75% 0, var(--fw-white) 97%, transparent 100%);
+  background-size:
+    100% calc(100% - var(--s) / 2),
+    calc(2 * var(--s)) calc(var(--s) / 2),
+    calc(2 * var(--s)) calc(var(--s) / 2);
+  background-position: top left, bottom left, bottom left;
+  background-repeat: no-repeat, repeat-x, repeat-x;
+  transform-origin: 50% 0;
+}
+
+.fw-stall-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(2rem, 4.5vw, 3.5rem) clamp(1.75rem, 5vw, 5rem) 0;
+}
+
+.fw-slogan {
+  margin: 0;
+  max-width: 14ch;
+  font-family: var(--fw-display);
+  font-weight: 600;
+  font-size: clamp(2.6rem, 4.6vw, 4.4rem);
+  line-height: 1;
+  letter-spacing: -.04em;
+  text-wrap: balance;
+}
+
+/* the board: chalk on green, one hairline frame */
+.fw-board {
+  margin-top: clamp(1.75rem, 4vh, 2.75rem);
+  max-width: 30rem;
+  padding: 1.25rem 1.5rem 1.1rem;
+  border: 1.5px solid rgba(255, 255, 255, .22);
+  border-radius: 18px;
+  background: rgba(13, 38, 24, .38);
+}
+.fw-board-title {
+  margin: 0 0 .7rem;
+  font-family: var(--fw-display);
+  font-weight: 500;
+  font-size: 1rem;
+  color: #f6b98e;
+}
+.fw-prices { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.fw-prices li { display: flex; align-items: baseline; gap: .6rem; font-size: 1.02rem; }
+.fw-item { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fw-dots { flex: 1; min-width: 1rem; border-bottom: 2px dotted rgba(255, 255, 255, .28); transform: translateY(-4px); }
+.fw-price {
+  font-family: var(--fw-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fw-price small { font-family: var(--fw-ui); font-weight: 400; font-size: .8rem; color: var(--fw-leaf-200); }
+.fw-board-foot { margin: .8rem 0 0; font-size: .8rem; color: var(--fw-leaf-200); }
+
+.fw-crate {
+  display: block;
+  width: min(72%, 31rem);
+  height: auto;
+  margin: auto clamp(1.5rem, 4vw, 4rem) -18px auto;
+  padding-top: 1.5rem;
+}
+.fw-stencil {
+  font-family: var(--fw-display);
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: .32em;
+  fill: #8e4f20;
+}
+
+/* ---------- arriving ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .fw-awning { animation: fw-unfurl .9s var(--fw-spring) .1s both; }
+  .fw-slogan { animation: fw-rise .9s var(--fw-out) .35s both; }
+  .fw-board { animation: fw-rise .9s var(--fw-out) .5s both; }
+  .fw-prices li { animation: fw-chalk .6s var(--fw-out) both; animation-delay: calc(.7s + var(--i) * 70ms); }
+  .fw-produce > * { animation: fw-drop .7s var(--fw-spring) both; transform-box: fill-box; }
+  .fw-produce > :nth-child(1) { animation-delay: .8s; }
+  .fw-produce > :nth-child(2) { animation-delay: .9s; }
+  .fw-produce > :nth-child(3) { animation-delay: 1s; }
+  .fw-produce > :nth-child(4) { animation-delay: 1.08s; }
+  .fw-produce > :nth-child(5) { animation-delay: 1.16s; }
+  .fw-produce > :nth-child(n+6) { animation: fw-fade .4s ease-out 1.4s both; }
+  .fw-mark .fw-shoot, .fw-mark .fw-branch { stroke-dasharray: 1 1; }
+  .fw-mark .fw-shoot { animation: fw-draw .9s var(--fw-out) .15s both; }
+  .fw-mark .fw-branch { animation: fw-draw .5s var(--fw-out) .55s both; }
+  .fw-mark .fw-fruit, .fw-mark .fw-leaf { transform-box: fill-box; transform-origin: center; animation: fw-pop .5s var(--fw-spring) .85s both; }
+  .fw-form-wrap { animation: fw-rise .8s var(--fw-out) .1s both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fw-submit, .fw-submit-dot, .fw-field input { transition: none; }
+  .fw-error { animation: none; }
+  .fw-submit.is-busy .fw-submit-dot { animation: none; }
+}
+
+@keyframes fw-unfurl { from { transform: scaleY(.15); } to { transform: none; } }
+@keyframes fw-rise   { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes fw-chalk  { from { opacity: 0; clip-path: inset(0 100% 0 0); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+@keyframes fw-drop   { from { opacity: 0; transform: translateY(-90px); } to { opacity: 1; transform: none; } }
+@keyframes fw-fade   { from { opacity: 0; } }
+@keyframes fw-draw   { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fw-pop    { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes fw-nudge  { 0%, 100% { transform: none; } 30% { transform: translateX(-6px); } 60% { transform: translateX(4px); } }
+@keyframes fw-roll   { to { transform: rotate(360deg); } }
+
+/* ---------- phone: one column. The stall's awning, the name and slogan on
+   green, the crate; then the sign-in in daylight; then the board. ---------- */
+@media (max-width: 860px) {
+  .fw-door { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .fw-stall, .fw-stall-body, .fw-sign { display: contents; }
+  .fw-awning { order: 1; --s: 40px; height: 64px; }
+  .fw-brand {
+    order: 2;
+    padding: 1rem 1.25rem 0;
+    background: var(--fw-leaf-900);
+  }
+  .fw-mark { width: 38px; height: 38px; color: #fff; }
+  .fw-mark .fw-leaf { fill: #fff; }
+  .fw-name { color: #fff; font-size: 1.15rem; }
+  .fw-demo { color: #f6b98e; }
+  .fw-slogan {
+    order: 3;
+    max-width: none;
+    padding: 1.1rem 1.25rem 0;
+    font-size: clamp(2rem, 9.4vw, 2.5rem);
+    color: #fff;
+    background: var(--fw-leaf-900);
+  }
+  .fw-crate {
+    order: 4;
+    width: 100%;
+    margin: 0;
+    padding: .5rem 1.25rem 0 38%;
+    background: var(--fw-leaf-900);
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+  .fw-form-wrap { order: 5; max-width: none; padding: 1.75rem 1.25rem 0; }
+  .fw-hello { font-size: 2.2rem; }
+  .fw-lede { margin-bottom: 1.25rem; }
+  .fw-board { order: 6; margin: 2rem 1.25rem 0; max-width: none; color: #fff; background: var(--fw-leaf-900); border: 0; }
+  .fw-foot { order: 7; padding: 1.5rem 1.25rem calc(1.75rem + env(safe-area-inset-bottom)); }
+}

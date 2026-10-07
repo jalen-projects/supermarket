@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ shop.company_name }}{% endblock %}</title>
   <link rel="icon" href="{% static brand.favicon %}" type="image/svg+xml">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">{% if brand.app_css %}<link rel="stylesheet" href="{% static brand.app_css %}">{% endif %}
   {% include "partials/app_head.html" %}
   {% block head %}{% endblock %}
 </head>

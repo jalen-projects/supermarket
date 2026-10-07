@@ -1,0 +1,33 @@
+{% comment %}
+  The shop is alive above the numbers: a band like the mouth of the till
+  printer, with three rolls of his own shelf - names and shelf prices -
+  feeding up out of it at their own speeds. Decoration only: hidden from
+  screen readers, never on the till itself, and still when motion is reduced.
+{% endcomment %}
+<section class="dash-band no-print">
+  <div class="dash-hello">
+    <p class="dash-shop">{{ today|date:"l j F" }}</p>
+    <p class="dash-day">{% if shop.opens_at %}Open {{ shop.opens_at|time:"H:i" }}&ndash;{{ shop.closes_at|time:"H:i" }}{% endif %}{% if shop.address %} &middot; {{ shop.address }}{% endif %}</p>
+  </div>
+  <div class="till-rolls" aria-hidden="true">
+    {% for column in till_rolls %}
+      <div class="roll roll-{{ forloop.counter }}">
+        <div class="roll-feed">
+          {% for copy in "ab" %}
+            <div class="roll-slip">
+              <p class="roll-shop">{{ shop.company_name }}</p>
+              {% for name, price in column %}<p class="roll-line"><span>{{ name }}</span><b>{{ price }}</b></p>{% endfor %}
+              <p class="roll-thanks">Thank you</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <svg class="roll-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+      <path d="{{ brand.mark_a1 }}"/><path d="{{ brand.mark_a2 }}"/>
+    </g>
+    <path d="{{ brand.mark_bar }}" fill="currentColor"/>
+  </svg>
+</section>

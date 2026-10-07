@@ -1,0 +1,16 @@
+/* FreshWay's touch on the working screens: the sidebar (and the phone's top
+   bar) in the stall's leaf green instead of MAQAM's charcoal, with its quiet
+   text tinted to match. Colours only - not one size, gap or position of the
+   till or any other screen changes. Loaded after app.css by base.html when
+   shop/brand.py names it; MAQAM never loads it. */
+
+:root { --sidebar: #143a24; }
+.sidebar { color: #c9dfc8; }
+.brand-sub, .nav-label, .sidebar-foot .role { color: #9fbca4; }
+.nav a { color: #c9dfc8; }
+.demo-tag { color: #f6b98e; }
+.sidebar-foot a { color: #b4ccb6; }
+/* the phone's tab bar and its "More" sheet, same green */
+.m-tabs { background: rgba(20, 58, 36, .97); }
+.m-sheet { background: #10301e; }
+.m-sheet-who span { color: #9fbca4; }

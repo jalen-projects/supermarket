@@ -1,0 +1,87 @@
+/* FreshWay's owner's phone screen - templates/shop/freshway/owner.html.
+   Loaded after login.css, owner.css and freshway.css: it turns the shared
+   tokens green and orange, puts the stall's awning over the top, and chalks
+   the takings on the green board. MAQAM never loads it. */
+
+body.fw-ow {
+  --b-950: #0d2618;
+  --b-900: #143a24;
+  --b-800: #1b4d30;
+  --b-700: #256b40;
+  --b-500: #df6a22;
+  --b-200: #c9dfc8;
+  --b-100: #e6f0e3;
+  --paper: #f2f5ec;
+  --ink: #13281b;
+  --ink-soft: #4a5d4f;
+  --line: #cfdacb;
+  --display: "Outfit", "Segoe UI", system-ui, sans-serif;
+  background: var(--paper);
+}
+html:has(body.fw-ow) { background: #f2f5ec; }
+
+.fwo-head {
+  color: #fff;
+  background: var(--fw-leaf-900);
+  padding-bottom: 1.4rem;
+}
+.fwo-head .fw-awning { --s: 36px; height: 52px; padding-top: env(safe-area-inset-top); box-sizing: content-box; }
+.fwo-bar {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .9rem 1.1rem 0;
+}
+.fwo-mark { width: 30px; height: 30px; flex: none; }
+.fwo-shop {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--fw-display);
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fwo-hello {
+  margin: 1.4rem 1.1rem 0;
+  font-family: var(--fw-display);
+  font-weight: 600;
+  font-size: clamp(1.9rem, 8.5vw, 2.4rem);
+  line-height: 1.05;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.fwo-time { margin: .35rem 1.1rem 0; font-size: .9rem; color: var(--fw-leaf-200); font-variant-numeric: tabular-nums; }
+.fw-ow .ow-state.is-closed, .fw-ow .ow-state.is-waiting { color: var(--fw-leaf-200); }
+
+/* the takings, chalked on the board */
+.fw-ow .ow-receipt {
+  border-radius: 18px;
+  background: var(--fw-leaf-900);
+  color: #fff;
+  box-shadow: 0 18px 34px -24px rgba(13, 38, 24, .7);
+  font-family: var(--fw-ui);
+}
+.fw-ow .ow-receipt::after { content: none; }
+.fw-ow .ow-receipt-title { text-align: left; color: #f6b98e; font-family: var(--fw-display); font-weight: 500; }
+.fw-ow .ow-lines div { background: none; gap: .6rem; }
+.fw-ow .ow-lines div::after { content: none; }
+.fw-ow .ow-lines dt { background: none; color: #fff; padding: 0; display: flex; flex: 1; align-items: baseline; gap: .6rem; }
+.fw-ow .ow-lines dt::after { content: ""; flex: 1; border-bottom: 2px dotted rgba(255, 255, 255, .28); transform: translateY(-4px); }
+.fw-ow .ow-lines dd { background: none; color: #fff; padding: 0; margin: 0; font-family: var(--fw-display); font-weight: 600; }
+.fw-ow .ow-total { border-top: 1.5px solid rgba(255, 255, 255, .22); }
+.fw-ow .ow-total span { color: var(--fw-leaf-200); }
+.fw-ow .ow-total strong { color: #fff; font-family: var(--fw-display); font-weight: 650; font-stretch: normal; }
+.fw-ow .ow-count { color: var(--fw-leaf-200); }
+.fw-ow .ow-void { color: #ffb4a6; }
+
+.fw-ow .ow-block h2 { font-family: var(--fw-display); font-weight: 600; color: var(--fw-leaf-950); }
+.fw-ow .si-submit { background: var(--fw-leaf-800); border-radius: 999px; box-shadow: none; }
+.fw-ow .si-submit:hover { background: var(--fw-leaf-950); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fwo-head .fw-awning { animation: fw-unfurl .8s var(--fw-spring) .05s both; }
+  .fwo-hello { animation: fw-rise .8s var(--fw-out) .2s both; }
+}

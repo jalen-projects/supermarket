@@ -1,0 +1,25 @@
+{% load static humanize %}{% comment %}
+  FreshWay's band above the dashboard figures: the stall front - its awning,
+  the day, and this morning's produce board (shelf prices, read from the
+  products). Chosen by shop/brand.py; MAQAM's is partials/dash_band.html.
+  Never on the till itself, and still when motion is reduced.
+{% endcomment %}<link rel="stylesheet" href="{% static 'css/freshway-dash.css' %}">
+<section class="fwd-band no-print">
+  <div class="fwd-awning" aria-hidden="true"></div>
+  <div class="fwd-body">
+    <div class="fwd-day">
+      <p class="fwd-date">{{ today|date:"l j F" }}</p>
+      <p class="fwd-meta">{% if shop.opens_at %}Open {{ shop.opens_at|time:"H:i" }} to {{ shop.closes_at|time:"H:i" }}{% endif %}{% if shop.address %}<br>{{ shop.address }}{% endif %}</p>
+    </div>
+    {% if price_board %}
+    <div class="fwd-board">
+      <p class="fwd-board-title">On the stall today, {{ currency }}</p>
+      <ul>
+        {% for p in price_board %}
+          <li style="--i: {{ forloop.counter0 }}"><span>{{ p.name }}</span><i aria-hidden="true"></i><b>{{ p.selling_price|floatformat:0|intcomma }}</b></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</section>

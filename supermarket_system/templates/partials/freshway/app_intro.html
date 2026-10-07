@@ -1,0 +1,36 @@
+{% comment %}
+  FreshWay's opening: the stall opens for the day. The awning drops into
+  place, the shoot of the F grows and branches, an orange rolls in along the
+  branch and settles, the leaf comes out - and then the whole front rolls up
+  like a shutter on to the page. About three seconds, once per visit, tap
+  anywhere to skip. Without JavaScript, or with motion reduced, it never
+  shows: the page underneath is always whole. (MAQAM's opening is
+  partials/app_intro.html; this one is chosen by shop/brand.py.)
+{% endcomment %}
+<script>
+  (function () {
+    try {
+      var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reduce && !sessionStorage.getItem('{{ brand.key }}-intro')) {
+        document.documentElement.classList.add('play-fw-intro');
+        sessionStorage.setItem('{{ brand.key }}-intro', '1');
+      }
+    } catch (e) {}
+  })();
+</script>
+<div class="fw-intro" aria-hidden="true" onclick="document.documentElement.classList.remove('play-fw-intro')">
+  <div class="fwi-awning"></div>
+  <svg class="fwi-mark" viewBox="97 94 318 318" focusable="false">
+    <g fill="none" stroke="#fff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+      <path class="fwi-shoot" pathLength="1" d="{{ brand.mark_a1 }}"/>
+      <path class="fwi-branch" pathLength="1" d="{{ brand.mark_a2 }}"/>
+    </g>
+    <g class="fwi-orange">
+      <path d="{{ brand.mark_bar }}" fill="#df6a22"/>
+      <circle cx="318" cy="250" r="7" fill="#fff" opacity=".35"/>
+    </g>
+    <path class="fwi-leaf" d="M333 228 C334 210 346 198 366 196 C364 214 352 226 333 228 Z" fill="#fff"/>
+  </svg>
+  <p class="fwi-name">{{ shop.company_name }}</p>
+  {% if shop.tagline %}<p class="fwi-tag">{{ shop.tagline }}</p>{% endif %}
+</div>

@@ -1,0 +1,75 @@
+/* FreshWay's band above the dashboard - partials/freshway/dash_band.html.
+   MAQAM's band (the moving till rolls) is in dashboard.css; this file is
+   only ever loaded by FreshWay's partial. */
+
+@font-face {
+  font-family: "Outfit";
+  src: url("../fonts/outfit-latin.woff2") format("woff2");
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+.fwd-band {
+  --s: 44px;
+  margin: 0 0 1.4rem;
+  border-radius: 14px;
+  overflow: hidden;
+  color: #fff;
+  background: #143a24;
+}
+.fwd-awning {
+  height: 66px;
+  background-image:
+    repeating-linear-gradient(90deg, #fdfdfa 0 var(--s), #df6a22 var(--s) calc(2 * var(--s))),
+    radial-gradient(circle calc(var(--s) / 2) at 25% 0, #fdfdfa 97%, transparent 100%),
+    radial-gradient(circle calc(var(--s) / 2) at 75% 0, #df6a22 97%, transparent 100%);
+  background-size:
+    100% calc(100% - var(--s) / 2),
+    calc(2 * var(--s)) calc(var(--s) / 2),
+    calc(2 * var(--s)) calc(var(--s) / 2);
+  background-position: top left, bottom left, bottom left;
+  background-repeat: no-repeat, repeat-x, repeat-x;
+  transform-origin: 50% 0;
+}
+.fwd-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 1.5rem 3rem;
+  align-items: end;
+  padding: 1.1rem clamp(1.25rem, 3vw, 2.25rem) 1.6rem;
+}
+.fwd-date {
+  margin: 0;
+  font-family: "Outfit", "Segoe UI", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.8rem, 2.8vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: -.035em;
+}
+.fwd-meta { margin: .6rem 0 0; font-size: .9rem; line-height: 1.45; color: #c9dfc8; }
+
+.fwd-board-title { margin: 0 0 .5rem; font-family: "Outfit", "Segoe UI", system-ui, sans-serif; font-size: .95rem; color: #f6b98e; }
+.fwd-board ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .3rem 2rem;
+}
+.fwd-board li { display: flex; align-items: baseline; gap: .5rem; font-size: .95rem; }
+.fwd-board span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fwd-board i { flex: 1; min-width: .75rem; border-bottom: 2px dotted rgba(255, 255, 255, .28); transform: translateY(-4px); }
+.fwd-board b { font-family: "Outfit", "Segoe UI", system-ui, sans-serif; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fwd-awning { animation: fwd-unfurl .8s cubic-bezier(.34, 1.45, .64, 1) both; }
+  .fwd-board li { animation: fwd-chalk .5s cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(.25s + var(--i) * 60ms); }
+}
+@keyframes fwd-unfurl { from { transform: scaleY(.15); } }
+@keyframes fwd-chalk  { from { opacity: 0; clip-path: inset(0 100% 0 0); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+
+@media (max-width: 760px) {
+  .fwd-body { grid-template-columns: minmax(0, 1fr); }
+  .fwd-board ul { grid-template-columns: minmax(0, 1fr); }
+}

@@ -28,6 +28,7 @@ A busy Ugandan supermarket on a highway; bright shop lighting, shared PCs, a que
 - Wording on the sign-in page stays as it is.
 - Every screen carries "Powered by CampusNect Smart Technologies"; receipts carry it as text only.
 - **The same code runs a second shop**: the FreshWay Supermarket demonstration shop (supermarket.campusnect.com, fictional, `SMMS_BRAND=freshway`, `SMMS_DEMO=1`). Names and addresses come from Shop details; everything drawn (the mark, app icons, opening animation, browser storage names) comes from `shop/brand.py`. Nothing MAQAM-specific may be hard-coded in a template or script.
+- **7 Oct 2026: FreshWay has its own front door**, not MAQAM's with a new name: a market-stall sign-in (striped awning, this morning's produce prices on a board, a crate of fruit), its own opening (the awning drops, the F grows, an orange rolls in, the shutter rolls up), its own owner's-phone header and dashboard band, and a green sidebar. All chosen in `shop/brand.py` (`templates`, `app_css`, `price_board`); MAQAM lists none, so his screens render byte-for-byte as before.
 
 ## Evidence on Hand
 - Real shop identity: name, address (Kampala - Gulu Highway), phone +256 703 649411.

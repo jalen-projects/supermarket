@@ -1,0 +1,92 @@
+/* FreshWay's opening - templates/partials/freshway/app_intro.html. Plays
+   only when the page has been given "play-fw-intro" (once per visit, motion
+   allowed). MAQAM's opening is intro.css and never loads this file. */
+
+.fw-intro { display: none; }
+
+.play-fw-intro .fw-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1.4rem;
+  background: #143a24;
+  cursor: pointer;
+  animation: fwi-up .6s cubic-bezier(.7, 0, .84, 0) 2.9s forwards;
+}
+
+/* the awning: the same stripes and scallops as the stall on the page */
+.fwi-awning {
+  --s: 56px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 92px;
+  background-image:
+    repeating-linear-gradient(90deg, #fdfdfa 0 var(--s), #df6a22 var(--s) calc(2 * var(--s))),
+    radial-gradient(circle calc(var(--s) / 2) at 25% 0, #fdfdfa 97%, transparent 100%),
+    radial-gradient(circle calc(var(--s) / 2) at 75% 0, #df6a22 97%, transparent 100%);
+  background-size:
+    100% calc(100% - var(--s) / 2),
+    calc(2 * var(--s)) calc(var(--s) / 2),
+    calc(2 * var(--s)) calc(var(--s) / 2);
+  background-position: top left, bottom left, bottom left;
+  background-repeat: no-repeat, repeat-x, repeat-x;
+  transform-origin: 50% 0;
+  transform: scaleY(0);
+  animation: fwi-drop .7s cubic-bezier(.34, 1.45, .64, 1) .1s forwards;
+}
+
+.fwi-mark { width: min(56vw, 270px); height: auto; overflow: visible; }
+.fw-intro svg * { transform-box: fill-box; }
+
+.fwi-shoot, .fwi-branch { stroke-dasharray: 1 1; stroke-dashoffset: 1; }
+.fwi-shoot  { animation: fwi-draw .8s cubic-bezier(.16, 1, .3, 1) .45s forwards; }
+.fwi-branch { animation: fwi-draw .4s cubic-bezier(.16, 1, .3, 1) 1.05s forwards; }
+
+/* the orange rolls in from the right along the branch and settles */
+.fwi-orange {
+  transform-origin: 50% 50%;
+  opacity: 0;
+  animation: fwi-roll .75s cubic-bezier(.22, 1, .36, 1) 1.2s forwards;
+}
+.fwi-leaf {
+  transform-origin: 0 100%;
+  transform: scale(0);
+  animation: fwi-pop .4s cubic-bezier(.34, 1.56, .64, 1) 1.9s forwards;
+}
+
+.fwi-name {
+  margin: 0;
+  color: #fff;
+  font: 600 clamp(1.4rem, 5.2vw, 2rem)/1 "Outfit", "Segoe UI", system-ui, sans-serif;
+  letter-spacing: -.025em;
+  text-align: center;
+  opacity: 0;
+  animation: fwi-rise .6s cubic-bezier(.16, 1, .3, 1) 2.05s forwards;
+}
+
+.fwi-tag {
+  margin: -.6rem 0 0;
+  color: #c9dfc8;
+  font: 400 clamp(.95rem, 3.6vw, 1.1rem)/1.3 "Outfit", "Segoe UI", system-ui, sans-serif;
+  text-align: center;
+  opacity: 0;
+  animation: fwi-rise .6s cubic-bezier(.16, 1, .3, 1) 2.2s forwards;
+}
+
+@keyframes fwi-drop { to { transform: scaleY(1); } }
+@keyframes fwi-draw { to { stroke-dashoffset: 0; } }
+@keyframes fwi-roll {
+  0%   { opacity: 1; transform: translateX(340px) rotate(300deg); }
+  78%  { opacity: 1; transform: translateX(-8px) rotate(-6deg); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes fwi-pop  { to { transform: scale(1); } }
+@keyframes fwi-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes fwi-up   { to { transform: translateY(-100%); visibility: hidden; pointer-events: none; } }
+
+@media (prefers-reduced-motion: reduce) { .play-fw-intro .fw-intro { display: none; } }
